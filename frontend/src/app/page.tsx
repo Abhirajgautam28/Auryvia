@@ -1,37 +1,72 @@
-'use client'; // A special spell for Next.js!
+'use client';
 
 import { useState } from 'react';
 
 export default function Home() {
-  // This is where we'll keep the message from our engine room
-  const [message, setMessage] = useState('');
+  const [idea, setIdea] = useState('');
+  const [itinerary, setItinerary] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  // This function happens when we click the button
   const handleClick = async () => {
-    setMessage('Calling the engine room...');
-    // We use our telephone (fetch) to call the backend's special door
-    const response = await fetch('http://localhost:8080/api/hello');
-    const data = await response.text();
-    setMessage(data); // Put the message on the screen!
+    if (!idea) {
+      alert('Please enter a trip idea!');
+      return;
+    }
+    setLoading(true);
+    setItinerary('');
+
+    try {
+      const response = await fetch('http://localhost:8080/api/generate', {
+        method: 'POST',
+        body: idea,
+      });
+
+      const data = await response.text();
+      setItinerary(data);
+    } catch (error) {
+      console.error("Oops, couldn't talk to the engine:", error);
+      alert("Oops! Something went wrong. Make sure the backend engine is running!");
+    }
+
+    setLoading(false);
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <div className="text-center">
-        <h1 className="text-5xl font-bold mb-4">WanderAI ✨</h1>
-        <p className="text-lg text-slate-400 mb-8">Your Magical Trip Planner</p>
+    <main className="flex min-h-screen flex-col items-center p-4 sm:p-12 md:p-24">
+      <div className="w-full max-w-4xl text-center">
+        <h1 className="text-4xl sm:text-6xl font-extrabold mb-3 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+          Auryvia ✨
+        </h1>
+        <p className="text-md sm:text-xl text-slate-400 mb-8">
+          Describe your perfect trip, and let our AI create the magic for you!
+        </p>
 
-        <button
-          onClick={handleClick}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-transform transform hover:scale-105"
-        >
-          Talk to the Backend Engine
-        </button>
+        <div className="flex flex-col sm:flex-row gap-4 mb-8">
+          <textarea
+            value={idea}
+            onChange={(e) => setIdea(e.target.value)}
+            placeholder="e.g., A 5-day adventure in Kerala with backwaters, tea plantations, and spicy food"
+            className="flex-grow bg-slate-800 border border-slate-700 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:outline-none transition w-full resize-none"
+            rows={2}
+          />
+          <button
+            onClick={handleClick}
+            disabled={loading}
+            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:opacity-90 text-white font-bold py-4 px-8 rounded-lg shadow-lg transition-transform transform hover:scale-105 disabled:opacity-50 disabled:scale-100"
+          >
+            {loading ? 'Dreaming...' : 'Create My Trip'}
+          </button>
+        </div>
 
-        {message && (
-          <div className="mt-8 p-4 bg-slate-800 rounded-lg">
-            <p>Message from the Engine Room:</p>
-            <p className="font-mono text-green-400">{message}</p>
+        {loading && (
+          <div className="text-center">
+            <p>Our AI is crafting your unique adventure... 🗺️</p>
+          </div>
+        )}
+
+        {itinerary && (
+          <div className="mt-8 text-left p-6 bg-slate-800/50 border border-slate-700 rounded-lg shadow-inner">
+            <pre className="whitespace-pre-wrap font-sans text-slate-200">{itinerary}</pre>
           </div>
         )}
       </div>

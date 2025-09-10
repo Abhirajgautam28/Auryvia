@@ -8,14 +8,13 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os" // We need this new tool to read from our secret pocket!
+	"os"
 
 	"github.com/google/generative-ai-go/genai"
-	"github.com/joho/godotenv" // And this is the magic tool to load the .env file
+	"github.com/joho/godotenv"
 	"google.golang.org/api/option"
 )
 
-// ... (The corsMiddleware function is the same, no changes here) ...
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -48,10 +47,8 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 	}
 	tripIdea := string(body)
 
-	// --- The AI Magic Happens Here (Now Securely!) ---
 	ctx := context.Background()
 
-	// Read the key from our secret pocket instead of writing it here!
 	apiKey := os.Getenv("GEMINI_API_KEY")
 	if apiKey == "" {
 		log.Fatal("GEMINI_API_KEY not found in .env file")
@@ -63,7 +60,6 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 	}
 	defer client.Close()
 
-	// ... (The rest of the AI logic is the same!) ...
 	model := client.GenerativeModel("gemini-1.5-flash")
 	prompt := fmt.Sprintf("You are an expert travel planner named WanderAI. Create a fun, exciting, and well-structured trip itinerary based on this idea: '%s'. Format the output nicely with headings for each day. Include a mix of activities, food suggestions, and hidden gems. Start with a catchy title for the trip.", tripIdea)
 
@@ -76,7 +72,6 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, printResponse(resp))
 }
 
-// ... (The printResponse function is the same, no changes here) ...
 func printResponse(resp *genai.GenerateContentResponse) string {
 	var result string
 	for _, cand := range resp.Candidates {
