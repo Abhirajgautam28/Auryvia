@@ -1,41 +1,46 @@
 'use client';
 
 import { useState } from 'react';
+import ActivityCard from './ActivityCard';
+
+type Itinerary = {
+  tripTitle: string;
+  itinerary: {
+    day: number;
+    title: string;
+    activities: {
+      time: string;
+      description: string;
+      category: string;
+    }[];
+  }[];
+};
 
 export default function Home() {
   const [idea, setIdea] = useState('');
-  const [itinerary, setItinerary] = useState('');
+  const [itinerary, setItinerary] = useState<Itinerary | null>(null); data or nothing
   const [loading, setLoading] = useState(false);
 
   const handleClick = async () => {
-    if (!idea) {
-      alert('Please enter a trip idea!');
-      return;
-    }
     setLoading(true);
-    setItinerary('');
+    setItinerary(null);
 
-    try {
-      const response = await fetch('http://localhost:8080/api/generate', {
-        method: 'POST',
-        body: idea,
-      });
+    const response = await fetch('http://localhost:8080/api/generate', {
+      method: 'POST',
+      body: idea,
+    });
 
-      const data = await response.text();
-      setItinerary(data);
-    } catch (error) {
-      console.error("Oops, couldn't talk to the engine:", error);
-      alert("Oops! Something went wrong. Make sure the backend engine is running!");
-    }
-
+    const data = await response.json();
+    setItinerary(data);
     setLoading(false);
   };
 
   return (
     <main className="flex min-h-screen flex-col items-center p-4 sm:p-12 md:p-24">
       <div className="w-full max-w-4xl text-center">
+        {/* ... (The header and input form are the same) ... */}
         <h1 className="text-4xl sm:text-6xl font-extrabold mb-3 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-          Auryvia ✨
+          WanderAI ✨
         </h1>
         <p className="text-md sm:text-xl text-slate-400 mb-8">
           Describe your perfect trip, and let our AI create the magic for you!
@@ -57,16 +62,21 @@ export default function Home() {
             {loading ? 'Dreaming...' : 'Create My Trip'}
           </button>
         </div>
-
-        {loading && (
-          <div className="text-center">
-            <p>Our AI is crafting your unique adventure... 🗺️</p>
-          </div>
-        )}
-
         {itinerary && (
-          <div className="mt-8 text-left p-6 bg-slate-800/50 border border-slate-700 rounded-lg shadow-inner">
-            <pre className="whitespace-pre-wrap font-sans text-slate-200">{itinerary}</pre>
+          <div className="mt-8 text-left">
+            <h2 className="text-3xl font-bold mb-6 text-center">{itinerary.tripTitle}</h2>
+            <div className="space-y-8">
+              {itinerary.itinerary.map((day) => (
+                <div key={day.day}>
+                  <h3 className="text-xl font-semibold mb-4 text-blue-400">Day {day.day}: {day.title}</h3>
+                  <div className="space-y-4">
+                    {day.activities.map((activity, index) => (
+                      <ActivityCard key={index} activity={activity} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
