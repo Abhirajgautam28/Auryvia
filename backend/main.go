@@ -61,7 +61,7 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 	defer client.Close()
 
 	model := client.GenerativeModel("gemini-1.5-flash")
-	prompt := fmt.Sprintf("You are an expert travel planner named WanderAI. Create a fun, exciting, and well-structured trip itinerary based on this idea: '%s'. Format the output nicely with headings for each day. Include a mix of activities, food suggestions, and hidden gems. Start with a catchy title for the trip.", tripIdea)
+	prompt := fmt.Sprintf("You are an expert travel planner named Auryvia. Create a fun, exciting, and well-structured trip itinerary based on this idea: '%s'. Format the output nicely with headings for each day. Include a mix of activities, food suggestions, and hidden gems. Start with a catchy title for the trip.", tripIdea)
 
 	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {
