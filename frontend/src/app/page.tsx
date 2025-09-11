@@ -7,6 +7,7 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import InteractiveMap from '../components/InteractiveMap';
 import BookingCard from '../components/BookingCard';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 
 type Itinerary = {
   tripTitle: string;
@@ -117,6 +118,9 @@ export default function Home() {
       });
       if (response.ok) {
         setSaveStatus('Saved to your library!');
+        toast.success('Trip saved to your library!', {
+          icon: '✅',
+        });
       } else {
         const errorText = await response.text();
         setSaveStatus('Error saving: ' + errorText);

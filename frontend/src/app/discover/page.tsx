@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { motion } from "framer-motion";
 
 type Trip = {
   id: string;
@@ -34,13 +36,31 @@ export default function DiscoverPage() {
         Discover Public Trips
       </h1>
       {loading ? (
-        <div className="text-center text-slate-400 text-xl">Loading...</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="bg-slate-800 border border-slate-700 rounded-xl shadow-lg p-6 flex flex-col items-center"
+              initial={{ scale: 1 }}
+              whileHover={{ scale: 1.03 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            >
+              <Skeleton className="w-full h-40 mb-4 rounded-lg" />
+              <Skeleton className="h-8 w-2/3 mb-2" />
+              <Skeleton className="h-6 w-1/2 mb-2" />
+              <Skeleton className="h-10 w-1/2 mt-4" />
+            </motion.div>
+          ))}
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
           {trips.map((trip) => (
-            <div
+            <motion.div
               key={trip.id}
-              className="bg-slate-800 border border-slate-700 rounded-xl shadow-lg p-6 flex flex-col items-center"
+              className="bg-slate-800 border border-slate-700 rounded-xl shadow-lg p-6 flex flex-col items-center cursor-pointer"
+              initial={{ scale: 1 }}
+              whileHover={{ scale: 1.03 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
             >
               <div className="w-full h-40 mb-4 flex items-center justify-center bg-slate-700 rounded-lg overflow-hidden">
                 <img
@@ -49,15 +69,19 @@ export default function DiscoverPage() {
                   className="h-24 w-24 opacity-70"
                 />
               </div>
-              <h2 className="text-2xl font-bold text-blue-400 mb-2 text-center">{trip.tripTitle}</h2>
-              <p className="text-slate-300 mb-2 text-center">{trip.destination}</p>
+              <h2 className="text-2xl font-bold text-blue-400 mb-2 text-center">
+                {trip.tripTitle}
+              </h2>
+              <p className="text-slate-300 mb-2 text-center">
+                {trip.destination}
+              </p>
               <button
                 className="mt-4 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg shadow transition"
                 disabled
               >
                 View Details
               </button>
-            </div>
+            </motion.div>
           ))}
         </div>
       )}
