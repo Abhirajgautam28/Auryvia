@@ -54,7 +54,7 @@ export default function DiscoverPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-          {trips.map((trip) => (
+          {(Array.isArray(trips) ? trips : []).map((trip) => (
             <motion.div
               key={trip.id}
               className="bg-slate-800 border border-slate-700 rounded-xl shadow-lg p-6 flex flex-col items-center cursor-pointer"
