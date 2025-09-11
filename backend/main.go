@@ -3,13 +3,15 @@
 package main
 
 import (
-	"context" // We need this tool to understand JSON
+	"context"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
 
+	"cloud.google.com/go/firestore"
+	firebase "firebase.google.com/go"
 	"github.com/google/generative-ai-go/genai"
 	"github.com/joho/godotenv"
 	"google.golang.org/api/option"
@@ -38,6 +40,22 @@ type Itinerary struct {
 	Itinerary   []Day  `json:"itinerary"`
 }
 
+var firestoreClient *firestore.Client
+
+func initFirebase() {
+	ctx := context.Background()
+	// TODO: Replace with your actual service account key file path
+	sa := option.WithCredentialsFile("path/to/serviceAccountKey.json")
+	app, err := firebase.NewApp(ctx, nil, sa)
+	if err != nil {
+		log.Fatalf("error initializing firebase app: %v", err)
+	}
+	firestoreClient, err = app.Firestore(ctx)
+	if err != nil {
+		log.Fatalf("error initializing firestore client: %v", err)
+	}
+}
+
 // ... (corsMiddleware function is the same, no changes) ...
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -62,6 +80,7 @@ func main() {
 
 	fmt.Println("Backend engine with SUPER-SMART AI Brain is starting on port 8080...")
 	http.ListenAndServe(":8080", corsMiddleware(mux))
+	initFirebase()
 }
 
 func handleGenerate(w http.ResponseWriter, r *http.Request) {
@@ -71,6 +90,9 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tripIdea := string(body)
+
+	// Optionally get User ID from header (e.g., "X-User-Id")
+	userId := r.Header.Get("X-User-Id")
 
 	ctx := context.Background()
 	apiKey := os.Getenv("GEMINI_API_KEY")
@@ -100,9 +122,26 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	itineraryJSON := printResponse(resp)
+
+	// Save to Firestore if userId is present
+	if userId != "" && firestoreClient != nil {
+		_, _, err := firestoreClient.Collection("trips").Add(ctx, map[string]interface{}{
+			"userId":    userId,
+			"itinerary": itineraryJSON,
+		})
+		if err != nil {
+			log.Printf("Failed to save itinerary: %v", err)
+			http.Error(w, "Failed to save itinerary to Firestore: "+err.Error(), http.StatusInternalServerError)
+			return
+		} else {
+			log.Printf("Itinerary saved to Firestore for userId: %s", userId)
+		}
+	}
+
 	// Tell the browser we are sending JSON data
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, printResponse(resp))
+	fmt.Fprintf(w, itineraryJSON)
 }
 
 func printResponse(resp *genai.GenerateContentResponse) string {
