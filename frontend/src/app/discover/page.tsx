@@ -57,6 +57,6 @@ export default function DiscoverPage() {
               >
                 View Details
               </button>
-            </div>
+      </div>
           ))}
         </div>
