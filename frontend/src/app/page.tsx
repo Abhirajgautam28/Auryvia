@@ -15,6 +15,7 @@ import toast from 'react-hot-toast';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import EnergyMonitor from '../components/EnergyMonitor';
+import { Switch } from '@/components/ui/switch';
 
 type Itinerary = {
   tripTitle: string;
@@ -113,14 +114,43 @@ export default function Home() {
   const [showHotelRequest, setShowHotelRequest] = useState(false);
   const [hotelEmail, setHotelEmail] = useState('');
   const [hotelLoading, setHotelLoading] = useState(false);
+  const [timeDilation, setTimeDilation] = useState(false);
 
-  // Mocked user location and sanctuaries
-  const userLocation = { lat: 12.936, lng: 77.617 };
-  const sanctuaries = [
-    { lat: 12.937, lng: 77.618, label: 'Botanical Garden Sanctuary' },
-    { lat: 12.935, lng: 77.619, label: 'Central Library Sanctuary' },
-    { lat: 12.938, lng: 77.620, label: 'Quiet Cafe Sanctuary' },
-  ];
+  // Helper to parse time string like "3:00 PM" to Date object (today)
+  function parseActivityTime(timeStr: string): Date | null {
+    const now = new Date();
+    const [time, meridian] = timeStr.split(' ');
+    if (!time || !meridian) return null;
+    let [hours, minutes] = time.split(':').map(Number);
+    if (meridian.toLowerCase() === 'pm' && hours < 12) hours += 12;
+    if (meridian.toLowerCase() === 'am' && hours === 12) hours = 0;
+    const activityDate = new Date(now);
+    activityDate.setHours(hours, minutes, 0, 0);
+    return activityDate;
+  }
+
+  // Render time (absolute or relative)
+  function renderActivityTime(activity: { time: string; description: string }) {
+    if (!timeDilation) return <span>{activity.time}: {activity.description}</span>;
+    const now = new Date();
+    const activityDate = parseActivityTime(activity.time);
+    if (!activityDate) return <span>{activity.description}</span>;
+    const diffMs = activityDate.getTime() - now.getTime();
+    if (diffMs > 0) {
+      const mins = Math.round(diffMs / 60000);
+      return (
+        <span>
+          Next up: {activity.description}. Leave in {mins} minute{mins !== 1 ? 's' : ''}.
+        </span>
+      );
+    } else {
+      return (
+        <span>
+          {activity.description} (Started {Math.abs(Math.round(diffMs / 60000))} minute{Math.abs(Math.round(diffMs / 60000)) !== 1 ? 's' : ''} ago)
+        </span>
+      );
+    }
+  }
 
   // Check onboarding status after login
   useEffect(() => {
@@ -636,7 +666,9 @@ export default function Home() {
                                 <span className="block w-2.5 h-2.5 rounded-full bg-blue-600" />
                               </div>
                               <div className="flex-1">
-                                <p className="text-[#334155] font-medium">{activity.time} - {activity.description}</p>
+                                <p className="text-[#334155] font-medium">
+                                  {renderActivityTime(activity)}
+                                </p>
                                 <p className="text-sm text-gray-500">{activity.category}</p>
                               </div>
                             </div>
