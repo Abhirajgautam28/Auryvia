@@ -45,11 +45,11 @@ var firestoreClient *firestore.Client
 func initFirebase() {
 	ctx := context.Background()
 	// TODO: Replace with your actual service account key file path
-	sa := option.WithCredentialsFile("path/to/serviceAccountKey.json")
+	sa := option.WithCredentialsFile("serviceAccountKey.json")
 	// Get project ID from environment or hardcode for now
 	projectID := os.Getenv("FIREBASE_PROJECT_ID")
 	if projectID == "" {
-		projectID = "your-project-id" // <-- Replace with your actual project ID
+		log.Fatalf("FIREBASE_PROJECT_ID environment variable is required but not set.")
 	}
 	conf := &firebase.Config{ProjectID: projectID}
 	app, err := firebase.NewApp(ctx, conf, sa)
@@ -76,7 +76,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
-	err := godotenv.Load()
+	err := godotenv.Load(".env.local")
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
