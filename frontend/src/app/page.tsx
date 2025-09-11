@@ -312,6 +312,18 @@ export default function Home() {
                 transition={{ duration: 0.5 }}
               >
                 <div className="flex flex-col gap-4">
+                  {/* Show Google Map for activities */}
+                  {itinerary && itinerary.itinerary && itinerary.itinerary.length > 0 && (
+                    <div className="w-full h-[400px] mb-8">
+                      <InteractiveMap
+                        activities={itinerary.itinerary.flatMap(day => day.activities.filter(a => a.lat && a.lng))}
+                        apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
+                        hoveredIdx={selectedIdx}
+                        selectedIdx={selectedIdx}
+                        onMarkerClick={() => {}}
+                      />
+                    </div>
+                  )}
                   <motion.h2
                     className="text-2xl font-bold mb-4"
                     initial={{ opacity: 0 }}
