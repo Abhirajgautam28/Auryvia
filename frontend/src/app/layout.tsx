@@ -10,8 +10,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning={true}> 
-      <body className={`${inter.className} bg-slate-900 text-white`}>
+    <html lang="en" suppressHydrationWarning={true}>
+      <body className={`${inter.className} bg-slate-900 text-white`} suppressHydrationWarning={true}>
         {children}
       </body>
     </html>

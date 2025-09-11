@@ -29,7 +29,7 @@ export default function DiscoverPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-slate-900 p-8" suppressHydrationWarning={true}>
+    <main className="min-h-screen bg-slate-900 p-8">
       <h1 className="text-4xl font-extrabold text-center mb-10 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
         Discover Public Trips
       </h1>
