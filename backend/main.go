@@ -89,6 +89,7 @@ func main() {
 	mux.HandleFunc("/api/save-trip", handleSaveTrip)
 	mux.HandleFunc("/api/mock-prices", handleMockPrices)
 	mux.HandleFunc("/api/public-trips", handlePublicTrips)
+	mux.HandleFunc("/api/generate-checklist", handleGenerateChecklist)
 	initFirebase()
 	fmt.Println("Backend engine with SUPER-SMART AI Brain is starting on port 8080...")
 	log.Fatal(http.ListenAndServe(":8080", corsMiddleware(mux)))
@@ -321,4 +322,61 @@ func handlePublicTrips(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(trips)
+}
+
+func handleGenerateChecklist(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Destination   string      `json:"destination"`
+		TripTitle     string      `json:"tripTitle"`
+		Accessibility interface{} `json:"accessibility"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	ctx := context.Background()
+	apiKey := os.Getenv("GEMINI_API_KEY")
+	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
+	if err != nil {
+		http.Error(w, "AI error", http.StatusInternalServerError)
+		return
+	}
+	defer client.Close()
+
+	prompt := fmt.Sprintf(`
+You are Auryvia, a compassionate travel AI. Your job is to create a personalized pre-flight checklist for the user.
+Destination: %s
+Trip Title: %s
+Accessibility Needs: %v
+
+Checklist must be a JSON array of strings. Each item should be a clear, actionable step for preparation, considering all accessibility needs.
+Example: ["Pack noise-cancelling headphones", "Download offline map for step-free routes", "Prepare medication documents for customs"]
+`, req.Destination, req.TripTitle, req.Accessibility)
+
+	model := client.GenerativeModel("gemini-1.5-flash")
+	model.GenerationConfig = genai.GenerationConfig{
+		ResponseMIMEType: "application/json",
+	}
+
+	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
+	if err != nil {
+		http.Error(w, "AI error", http.StatusInternalServerError)
+		return
+	}
+
+	var checklist []string
+	if err := json.Unmarshal([]byte(printResponse(resp)), &checklist); err != nil {
+		http.Error(w, "Failed to parse checklist", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"checklist": checklist,
+	})
 }
