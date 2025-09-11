@@ -1,12 +1,15 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FaHeart, FaShieldAlt, FaBrain, FaMapPin, FaLeaf, FaWheelchair, FaUtensils, FaEye } from 'react-icons/fa';
 import { useEffect, useState, useRef } from 'react';
 import ActivityCard from './ActivityCard';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import InteractiveMap from '../components/InteractiveMap';
 import BookingCard from '../components/BookingCard';
-import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 
 type Itinerary = {
@@ -28,6 +31,29 @@ const thinkingSteps = [
   { text: "Analyzing your request... 🧠", duration: 1500 },
   { text: "Consulting global travel logs... 🗺️", duration: 2000 },
   { text: "Crafting your unique blueprint... ✨", duration: 2000 },
+];
+
+const featureCards = [
+  {
+    icon: <FaEye className="text-blue-400 text-3xl mb-2" />,
+    title: 'The Relief View',
+    text: 'A map overlay showing accessible restrooms, quiet zones, and support services.',
+  },
+  {
+    icon: <FaWheelchair className="text-blue-400 text-3xl mb-2" />,
+    title: 'Step-Free Routing',
+    text: 'Generates true, wheelchair-accessible paths between locations on a map.',
+  },
+  {
+    icon: <FaUtensils className="text-blue-400 text-3xl mb-2" />,
+    title: 'Dietary-Aware Dining',
+    text: 'Locates restaurants that match your precise dietary needs, from allergies to celiac disease.',
+  },
+  {
+    icon: <FaEye className="text-blue-400 text-3xl mb-2" />,
+    title: 'Sensory-Friendly Scheduling',
+    text: 'Finds quiet times at attractions and low-stimulation environments.',
+  },
 ];
 
 export default function Home() {
@@ -329,6 +355,171 @@ export default function Home() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* New Sections Below */}
+      {/* Hero Section */}
+      <section className="relative flex flex-col items-center justify-center h-[70vh] px-4">
+        {/* Animated abstract background */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute inset-0 pointer-events-none"
+        >
+          <svg width="100%" height="100%" viewBox="0 0 1440 600" fill="none" className="absolute inset-0 w-full h-full">
+            <motion.path
+              d="M0,400 Q720,600 1440,400 L1440,0 L0,0 Z"
+              fill="url(#gradient1)"
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 0.5, y: 0 }}
+              transition={{ duration: 1.2, ease: 'easeOut' }}
+            />
+            <defs>
+              <linearGradient id="gradient1" x1="0" y1="0" x2="1440" y2="600" gradientTransform="rotate(45)">
+                <stop stopColor="#3b82f6" stopOpacity="0.18" />
+                <stop offset="1" stopColor="#a7f3d0" stopOpacity="0.12" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </motion.div>
+        <div className="relative z-10 flex flex-col items-center">
+          <motion.h1
+            className="text-5xl md:text-7xl font-extrabold mb-6 text-center"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, ease: 'easeOut' }}
+            style={{ color: '#1e293b', fontFamily: 'Inter, sans-serif' }}
+          >
+            Travel Without Barriers.
+          </motion.h1>
+          <motion.p
+            className="text-lg md:text-2xl font-medium text-center mb-8 max-w-2xl"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 1, ease: 'easeOut' }}
+            style={{ color: '#334155', fontFamily: 'Inter, sans-serif' }}
+          >
+            Auryvia is the world's first compassionate travel AI, designing trips that adapt to your unique needs, energy levels, and sensory preferences.
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 1, duration: 0.7, ease: 'easeOut' }}
+          >
+            <Button size="lg" className="bg-blue-500 hover:bg-blue-600 text-white text-lg px-8 py-4 rounded-full shadow-lg font-semibold">
+              Plan My Comfort Trip
+            </Button>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="py-16 px-4 max-w-5xl mx-auto">
+        <motion.h2
+          className="text-3xl md:text-4xl font-bold text-center mb-12"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, ease: 'easeOut' }}
+        >
+          How It Works
+        </motion.h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+          {/* Step 1 */}
+          <motion.div
+            className="flex flex-col items-center text-center"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, delay: 0.1, ease: 'easeOut' }}
+          >
+            <span className="bg-blue-100 rounded-full p-4 mb-4">
+              <FaHeart className="text-blue-400 text-3xl" />
+              <FaShieldAlt className="text-blue-400 text-xl absolute -ml-6 mt-2" />
+            </span>
+            <h3 className="text-xl font-semibold mb-2">Share Your Needs, Safely</h3>
+            <p className="text-base text-[#334155]">Our inclusive onboarding understands everything from mobility to sensory sensitivities.</p>
+          </motion.div>
+          {/* Step 2 */}
+          <motion.div
+            className="flex flex-col items-center text-center"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, delay: 0.2, ease: 'easeOut' }}
+          >
+            <span className="bg-blue-100 rounded-full p-4 mb-4">
+              <FaBrain className="text-blue-400 text-3xl" />
+              <svg width="32" height="32" className="absolute -ml-6 mt-2">
+                <path d="M8 16 Q16 8 24 16" stroke="#3b82f6" strokeWidth="2" fill="none" />
+              </svg>
+            </span>
+            <h3 className="text-xl font-semibold mb-2">Our Compassionate AI Creates</h3>
+            <p className="text-base text-[#334155]">Auryvia analyzes millions of data points to build a trip that respects your pace.</p>
+          </motion.div>
+          {/* Step 3 */}
+          <motion.div
+            className="flex flex-col items-center text-center"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, delay: 0.3, ease: 'easeOut' }}
+          >
+            <span className="bg-blue-100 rounded-full p-4 mb-4 flex items-center justify-center relative">
+              <FaMapPin className="text-blue-400 text-3xl" />
+              <FaLeaf className="text-green-400 text-xl absolute -ml-6 mt-2" />
+            </span>
+            <h3 className="text-xl font-semibold mb-2">Travel With Confidence</h3>
+            <p className="text-base text-[#334155]">Receive an itinerary designed for your comfort, peace of mind, and joy.</p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Key Features Grid */}
+      <section className="py-16 px-4 max-w-6xl mx-auto">
+        <motion.h2
+          className="text-3xl md:text-4xl font-bold text-center mb-12"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, ease: 'easeOut' }}
+        >
+          Relief-Oriented Features
+        </motion.h2>
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={{
+            hidden: {},
+            visible: {
+              transition: { staggerChildren: 0.18 }
+            }
+          }}
+        >
+          {featureCards.map((feature, idx) => (
+            <motion.div
+              key={feature.title}
+              variants={{
+                hidden: { opacity: 0, y: 30 },
+                visible: { opacity: 1, y: 0 }
+              }}
+              whileHover={{ scale: 1.04, boxShadow: '0 8px 32px #3b82f633' }}
+              transition={{ type: 'spring', stiffness: 80, damping: 18 }}
+            >
+              <Card className="bg-white border-0 shadow-lg rounded-xl p-6 flex flex-col items-center text-center min-h-[220px]">
+                <CardHeader>
+                  {feature.icon}
+                  <CardTitle className="text-lg font-bold mb-2 text-blue-500">{feature.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-base text-[#334155]">{feature.text}</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </motion.div>
+      </section>
     </main>
   );
 }
