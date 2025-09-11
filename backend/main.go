@@ -91,6 +91,7 @@ func main() {
 	mux.HandleFunc("/api/public-trips", handlePublicTrips)
 	mux.HandleFunc("/api/generate-checklist", handleGenerateChecklist)
 	mux.HandleFunc("/api/generate-comm-card", handleGenerateCommCard)
+	mux.HandleFunc("/api/sensory-profile", handleSensoryProfile)
 	initFirebase()
 	fmt.Println("Backend engine with SUPER-SMART AI Brain is starting on port 8080...")
 	log.Fatal(http.ListenAndServe(":8080", corsMiddleware(mux)))
@@ -438,4 +439,46 @@ Example: {"en": "I have a severe gluten allergy (Celiac Disease). My food cannot
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(card)
+}
+
+func handleSensoryProfile(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Location string `json:"location"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	ctx := context.Background()
+	apiKey := os.Getenv("GEMINI_API_KEY")
+	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
+	if err != nil {
+		http.Error(w, "AI error", http.StatusInternalServerError)
+		return
+	}
+	defer client.Close()
+
+	prompt := fmt.Sprintf(`
+Act as a sensory data analyst. Analyze '%s' and generate a sensory profile. Consider noise from traffic, visual clutter from shops, and crowd density on a typical afternoon.
+Output JSON: {"audio": 1-100, "visual": 1-100, "crowds": 1-100, "summary": "Short descriptive paragraph."}
+`, req.Location)
+
+	model := client.GenerativeModel("gemini-1.5-flash")
+	model.GenerationConfig = genai.GenerationConfig{
+		ResponseMIMEType: "application/json",
+	}
+
+	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
+	if err != nil {
+		http.Error(w, "AI error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, printResponse(resp))
 }
