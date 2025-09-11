@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import ActivityCard from './ActivityCard';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
+import InteractiveMap from '../components/InteractiveMap';
 
 type Itinerary = {
   tripTitle: string;
@@ -101,6 +102,15 @@ export default function Home() {
         </div>
         {itinerary && (
           <div className="mt-8 text-left">
+            {/* Show map above itinerary cards */}
+            <InteractiveMap
+              activities={
+                itinerary.itinerary
+                  .flatMap(day => day.activities)
+                  .filter(a => typeof a.lat === 'number' && typeof a.lng === 'number')
+              }
+              apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
+            />
             <h2 className="text-3xl font-bold mb-6 text-center">{itinerary.tripTitle}</h2>
             <div className="space-y-8">
               {itinerary.itinerary.map((day) => (
