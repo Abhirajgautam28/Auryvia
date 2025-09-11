@@ -93,35 +93,34 @@ export default function Home() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-4 sm:p-12 md:p-24">
-      <div className="w-full max-w-4xl text-center">
-        {/* ... (The header and input form are the same) ... */}
-        <h1 className="text-4xl sm:text-6xl font-extrabold mb-3 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-          WanderAI ✨
+    <main className="flex min-h-screen items-center justify-center bg-white font-sans">
+      <div className="w-full max-w-xl mx-auto rounded-2xl bg-white shadow-lg p-10 flex flex-col items-center justify-center border border-slate-200">
+        <h1 className="text-5xl font-light mb-8 text-center text-gray-900 tracking-tight" style={{fontFamily: 'Roboto, Helvetica, Arial, sans-serif'}}>
+          <span className="font-normal">Auryvia</span>
         </h1>
-        <p className="text-md sm:text-xl text-slate-400 mb-8">
-          Describe your perfect trip, and let our AI create the magic for you!
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-4 mb-8">
+        <form
+          className="w-full flex flex-col items-center gap-6"
+          onSubmit={e => { e.preventDefault(); handleClick(); }}
+        >
           <textarea
             value={idea}
             onChange={(e) => setIdea(e.target.value)}
             placeholder="e.g., A 5-day adventure in Kerala with backwaters, tea plantations, and spicy food"
-            className="flex-grow bg-slate-800 border border-slate-700 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:outline-none transition w-full resize-none"
+            className="w-full bg-gray-100 border border-gray-300 rounded-full px-6 py-4 text-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none transition shadow placeholder:text-gray-400 font-normal resize-none"
             rows={2}
+            style={{ minHeight: 56 }}
           />
           <button
-            onClick={handleClick}
+            type="submit"
             disabled={loading}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:opacity-90 text-white font-bold py-4 px-8 rounded-lg shadow-lg transition-transform transform hover:scale-105 disabled:opacity-50 disabled:scale-100"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-full shadow transition disabled:opacity-50 text-lg"
+            style={{fontFamily: 'Roboto, Helvetica, Arial, sans-serif'}}
           >
             {loading ? 'Dreaming...' : 'Create My Trip'}
           </button>
-        </div>
+        </form>
         {itinerary && (
-          <div className="mt-8 text-left">
-            {/* Show map above itinerary cards */}
+          <div className="mt-10 w-full">
             <InteractiveMap
               activities={
                 itinerary.itinerary
@@ -130,11 +129,11 @@ export default function Home() {
               }
               apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
             />
-            <h2 className="text-3xl font-bold mb-6 text-center">{itinerary.tripTitle}</h2>
-            <div className="space-y-8">
+            <h2 className="text-2xl font-medium mb-6 text-center text-blue-700">{itinerary.tripTitle}</h2>
+            <div className="space-y-6">
               {itinerary.itinerary.map((day) => (
-                <div key={day.day}>
-                  <h3 className="text-xl font-semibold mb-4 text-blue-400">Day {day.day}: {day.title}</h3>
+                <div key={day.day} className="rounded-xl bg-gray-50 p-6 shadow border border-slate-200">
+                  <h3 className="text-lg font-medium mb-4 text-blue-600">Day {day.day}: {day.title}</h3>
                   <div className="space-y-4">
                     {day.activities.map((activity, index) => (
                       <ActivityCard key={index} activity={activity} />
