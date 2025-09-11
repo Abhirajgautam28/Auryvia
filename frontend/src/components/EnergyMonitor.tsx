@@ -6,24 +6,29 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { motion } from 'framer-motion';
 
 export default function EnergyMonitor({ itinerary, onReshuffle }: { itinerary: any, onReshuffle: (suggestion: any) => void }) {
-  const [energy, setEnergy] = useState(75);
+  // Use a constant mock value for demo, but keep state for future extensibility
+  const energy = 75;
   const [modalOpen, setModalOpen] = useState(false);
-  const [suggestion, setSuggestion] = useState<any>(null);
+  const [suggestion, setSuggestion] = useState<{ replace: string; suggestion: string } | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleReshuffle = async () => {
     setLoading(true);
     setModalOpen(true);
     setSuggestion(null);
-    const res = await fetch('http://localhost:8080/api/reshuffle-day', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ itinerary, constraint: 'low-energy' }),
-    });
-    const data = await res.json();
-    setSuggestion(data);
+    try {
+      const res = await fetch('http://localhost:8080/api/reshuffle-day', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itinerary, constraint: 'low-energy' }),
+      });
+      const data = await res.json();
+      setSuggestion(data);
+      if (onReshuffle) onReshuffle(data);
+    } catch (e) {
+      setSuggestion(null);
+    }
     setLoading(false);
-    onReshuffle && onReshuffle(data);
   };
 
   return (
@@ -38,10 +43,11 @@ export default function EnergyMonitor({ itinerary, onReshuffle }: { itinerary: a
           initial={{ width: 0 }}
           animate={{ width: `${energy}%` }}
           transition={{ duration: 1.2, ease: 'easeOut' }}
+          style={{ width: `${energy}%` }}
         />
       </div>
       <Button
-        size="sm"
+        variant="ghost"
         className="bg-purple-600 hover:bg-purple-700 text-white rounded-full px-4 py-2"
         onClick={handleReshuffle}
       >
@@ -50,7 +56,7 @@ export default function EnergyMonitor({ itinerary, onReshuffle }: { itinerary: a
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold mb-2">Bio-Sync Energy Pacing</DialogTitle>
+            <DialogTitle>Bio-Sync Energy Pacing</DialogTitle>
           </DialogHeader>
           {loading ? (
             <div className="text-center py-6 text-blue-500">Checking for a relaxing alternative...</div>
@@ -61,13 +67,14 @@ export default function EnergyMonitor({ itinerary, onReshuffle }: { itinerary: a
               </div>
               <div className="flex gap-4 justify-center mt-4">
                 <Button
+                  variant="ghost"
                   className="bg-green-600 hover:bg-green-700 text-white"
                   onClick={() => setModalOpen(false)}
                 >
                   Accept
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => setModalOpen(false)}
                 >
                   Decline
