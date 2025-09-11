@@ -90,6 +90,7 @@ func main() {
 	mux.HandleFunc("/api/mock-prices", handleMockPrices)
 	mux.HandleFunc("/api/public-trips", handlePublicTrips)
 	mux.HandleFunc("/api/generate-checklist", handleGenerateChecklist)
+	mux.HandleFunc("/api/generate-comm-card", handleGenerateCommCard)
 	initFirebase()
 	fmt.Println("Backend engine with SUPER-SMART AI Brain is starting on port 8080...")
 	log.Fatal(http.ListenAndServe(":8080", corsMiddleware(mux)))
@@ -379,4 +380,62 @@ Example: ["Pack noise-cancelling headphones", "Download offline map for step-fre
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"checklist": checklist,
 	})
+}
+
+func handleGenerateCommCard(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Place    string `json:"place"`
+		Dietary  string `json:"dietary"`
+		Language string `json:"language"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	ctx := context.Background()
+	apiKey := os.Getenv("GEMINI_API_KEY")
+	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
+	if err != nil {
+		http.Error(w, "AI error", http.StatusInternalServerError)
+		return
+	}
+	defer client.Close()
+
+	prompt := fmt.Sprintf(`
+You are Auryvia, a compassionate travel AI. Generate a clear, professional communication card for a traveler with dietary needs.
+Place: %s
+Dietary: %s
+Language: %s
+
+First, output the message in English for staff. Then, output the same message translated into the target language in large, clear text for staff to read. Output as JSON: {"en": "...", "jp": "..."} 
+Example: {"en": "I have a severe gluten allergy (Celiac Disease). My food cannot contain any wheat, barley, or rye. Please ensure there is no cross-contamination.", "jp": "私は重度のグルテンアレルギー（セリアック病）です。小麦、大麦、ライ麦は一切含まないようにしてください。"}
+`, req.Place, req.Dietary, req.Language)
+
+	model := client.GenerativeModel("gemini-1.5-flash")
+	model.GenerationConfig = genai.GenerationConfig{
+		ResponseMIMEType: "application/json",
+	}
+
+	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
+	if err != nil {
+		http.Error(w, "AI error", http.StatusInternalServerError)
+		return
+	}
+
+	var card struct {
+		En string `json:"en"`
+		Jp string `json:"jp"`
+	}
+	if err := json.Unmarshal([]byte(printResponse(resp)), &card); err != nil {
+		http.Error(w, "Failed to parse card", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(card)
 }

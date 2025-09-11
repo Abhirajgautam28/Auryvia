@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import OnboardingModal from '@/components/OnboardingModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaHeart, FaShieldAlt, FaBrain, FaMapPin, FaLeaf, FaWheelchair, FaUtensils, FaEye } from 'react-icons/fa';
+import { FaHeart, FaShieldAlt, FaBrain, FaMapPin, FaLeaf, FaWheelchair, FaUtensils, FaEye, FaLifeRing, FaVolumeMute, FaComments } from 'react-icons/fa';
 import { useEffect, useState, useRef } from 'react';
 import ActivityCard from './ActivityCard';
 import { auth } from '@/lib/firebase';
@@ -12,6 +12,8 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import InteractiveMap from '../components/InteractiveMap';
 import BookingCard from '../components/BookingCard';
 import toast from 'react-hot-toast';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 type Itinerary = {
   tripTitle: string;
@@ -75,6 +77,20 @@ export default function Home() {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const activityRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showGuardian, setShowGuardian] = useState(false);
+  const [showSanctuary, setShowSanctuary] = useState(false);
+  const [commCard, setCommCard] = useState<{ en: string; jp: string } | null>(null);
+  const [commLoading, setCommLoading] = useState(false);
+  const [showCommModal, setShowCommModal] = useState(false);
+
+  // Mocked user location and sanctuaries
+  const userLocation = { lat: 12.936, lng: 77.617 };
+  const sanctuaries = [
+    { lat: 12.937, lng: 77.618, label: 'Botanical Garden Sanctuary' },
+    { lat: 12.935, lng: 77.619, label: 'Central Library Sanctuary' },
+    { lat: 12.938, lng: 77.620, label: 'Quiet Cafe Sanctuary' },
+  ];
+
   // Check onboarding status after login
   useEffect(() => {
     if (user) {
@@ -192,11 +208,120 @@ export default function Home() {
     }
   }, [selectedIdx]);
 
+  // Communication Card API call
+  const handleCommCard = async (place: string, dietary: string) => {
+    setCommLoading(true);
+    setCommCard(null);
+    setShowCommModal(true);
+    const res = await fetch('http://localhost:8080/api/generate-comm-card', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        place,
+        dietary,
+        language: 'ja', // For demo, Japanese
+      }),
+    });
+    const data = await res.json();
+    setCommCard({ en: data.en, jp: data.jp });
+    setCommLoading(false);
+  };
+
   return (
-    <main className="min-h-screen bg-[#f8f7f4] text-[#1e293b] font-sans">
+    <main className="min-h-screen bg-[#f8f7f4] text-[#1e293b] font-sans relative">
       {showOnboarding && (
         <OnboardingModal onComplete={() => setShowOnboarding(false)} />
       )}
+      {/* Guardian FAB */}
+      <Button
+        className="fixed bottom-8 right-8 z-50 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg p-0 w-16 h-16 flex items-center justify-center text-3xl"
+        onClick={() => setShowGuardian(true)}
+        aria-label="Guardian Tools"
+      >
+        <FaLifeRing />
+      </Button>
+      {/* Guardian Drawer */}
+      <Drawer open={showGuardian} onOpenChange={setShowGuardian}>
+        <DrawerContent className="max-w-md mx-auto">
+          <DrawerHeader>
+            <DrawerTitle className="text-2xl font-bold mb-2">Guardian Tools</DrawerTitle>
+            <DrawerClose asChild>
+              <Button variant="ghost" className="absolute top-4 right-4">Close</Button>
+            </DrawerClose>
+          </DrawerHeader>
+          <div className="flex flex-col gap-6 p-6">
+            <Button
+              size="lg"
+              className="bg-purple-600 hover:bg-purple-700 text-white text-lg rounded-xl flex items-center gap-3 justify-center"
+              onClick={() => {
+                setShowSanctuary(true);
+                setShowGuardian(false);
+              }}
+            >
+              <FaVolumeMute className="text-2xl" />
+              Find a Quiet Place Now
+            </Button>
+            {/* Add more guardian tools here */}
+          </div>
+        </DrawerContent>
+      </Drawer>
+      {/* Sanctuary Finder Modal */}
+      <Dialog open={showSanctuary} onOpenChange={setShowSanctuary}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold mb-2">Sanctuary Finder</DialogTitle>
+          </DialogHeader>
+          <div className="w-full h-[400px] rounded-xl overflow-hidden border border-slate-200">
+            <InteractiveMap
+              activities={[{ lat: userLocation.lat, lng: userLocation.lng, time: '', description: 'You', category: 'User' }]}
+
+              apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
+              hoveredIdx={null}
+              selectedIdx={null}
+              onMarkerClick={() => {}}
+            />
+            {/* Overlay sanctuary markers */}
+            <div className="absolute inset-0 pointer-events-none">
+              {sanctuaries.map((s, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    position: 'absolute',
+                    left: `${50 + (s.lng - userLocation.lng) * 1000}px`,
+                    top: `${200 + (s.lat - userLocation.lat) * 1000}px`,
+                  }}
+                  className="flex flex-col items-center"
+                >
+                  <FaVolumeMute className="text-purple-500 text-2xl" />
+                  <span className="bg-white text-xs rounded px-2 py-1 shadow mt-1">{s.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Communication Card Modal */}
+      <Dialog open={showCommModal} onOpenChange={setShowCommModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold mb-2">Communication Card</DialogTitle>
+          </DialogHeader>
+          {commLoading ? (
+            <div className="text-center py-6 text-blue-500">Generating card...</div>
+          ) : commCard ? (
+            <div className="space-y-6">
+              <div>
+                <div className="font-semibold mb-2">English</div>
+                <div className="bg-gray-100 rounded-lg p-4 text-lg">{commCard.en}</div>
+              </div>
+              <div>
+                <div className="font-semibold mb-2">Japanese</div>
+                <div className="bg-blue-50 rounded-lg p-4 text-2xl font-bold text-blue-700">{commCard.jp}</div>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
       <div className="relative">
         {/* Background SVG */}
         <motion.svg
@@ -556,6 +681,24 @@ export default function Home() {
           ))}
         </motion.div>
       </section>
+
+      {/* Example: Add communicate icon next to restaurant/hotel activities */}
+      {/* Replace this with your actual itinerary rendering loop */}
+      {itinerary && itinerary.itinerary.map((day, dayIdx) =>
+        day.activities.map((activity, actIdx) =>
+          (activity.category === 'Food' || activity.category === 'Hotel') ? (
+            <Button
+              key={`comm-${dayIdx}-${actIdx}`}
+              variant="ghost"
+              size="sm"
+              className="ml-2 text-blue-600"
+              onClick={() => handleCommCard(activity.description, 'Celiac Disease')}
+            >
+              <FaComments />
+            </Button>
+          ) : null
+        )
+      )}
     </main>
   );
 }
