@@ -93,6 +93,7 @@ func main() {
 	mux.HandleFunc("/api/generate-comm-card", handleGenerateCommCard)
 	mux.HandleFunc("/api/sensory-profile", handleSensoryProfile)
 	mux.HandleFunc("/api/reshuffle-day", handleReshuffleDay)
+	mux.HandleFunc("/api/generate-script", handleGenerateScript)
 	initFirebase()
 	fmt.Println("Backend engine with SUPER-SMART AI Brain is starting on port 8080...")
 	log.Fatal(http.ListenAndServe(":8080", corsMiddleware(mux)))
@@ -514,6 +515,53 @@ Constraint: %s
 
 Suggest a single, relaxing replacement activity for the most demanding item on the list. Output JSON: {"replace": "original activity", "suggestion": "relaxing alternative"}
 `, req.Itinerary, req.Constraint)
+
+	model := client.GenerativeModel("gemini-1.5-flash")
+	model.GenerationConfig = genai.GenerationConfig{
+		ResponseMIMEType: "application/json",
+	}
+
+	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
+	if err != nil {
+		http.Error(w, "AI error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, printResponse(resp))
+}
+
+func handleGenerateScript(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Context string `json:"context"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	ctx := context.Background()
+	apiKey := os.Getenv("GEMINI_API_KEY")
+	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
+	if err != nil {
+		http.Error(w, "AI error", http.StatusInternalServerError)
+		return
+	}
+	defer client.Close()
+
+	prompt := fmt.Sprintf(`
+You are Auryvia, a compassionate travel AI. Generate a simple, step-by-step social script for the following context: %s.
+Include:
+- What the user can say (as a list)
+- What staff might say in response (as a list)
+- One or two cultural tips for the situation
+Output JSON: {"user": ["..."], "staff": ["..."], "tips": "..." }
+Example: {"user": ["I'd like to order pasta, please.", "Could I have the bill?"], "staff": ["Of course, which pasta would you like?", "Here is your bill."], "tips": "In Rome, it's polite to greet staff with 'Buonasera' and ask for the bill by saying 'Il conto, per favore.'}
+`, req.Context)
 
 	model := client.GenerativeModel("gemini-1.5-flash")
 	model.GenerationConfig = genai.GenerationConfig{
