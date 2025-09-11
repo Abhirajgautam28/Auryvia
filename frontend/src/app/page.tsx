@@ -58,6 +58,12 @@ const featureCards = [
 ];
 
 export default function Home() {
+  // Animation variants for cards
+  const cardVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -30 },
+  };
   const [idea, setIdea] = useState('');
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
   const [loading, setLoading] = useState(false);
