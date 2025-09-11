@@ -175,16 +175,42 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 	}
 	defer client.Close()
 
-	model := client.GenerativeModel("gemini-1.5-flash")
-	// THIS IS THE NEW MAGIC PROMPT! We tell the AI to ONLY respond with JSON.
+	// Fetch user constraints from Firestore if userId is present
+	var mobility, sensory, dietary interface{}
+	if userId != "" && firestoreClient != nil {
+		userDoc, err := firestoreClient.Collection("users").Doc(userId).Get(ctx)
+		if err == nil {
+			mobility = userDoc.Data()["mobility"]
+			sensory = userDoc.Data()["sensory"]
+			dietary = userDoc.Data()["dietary"]
+		}
+	}
+
+	// Build constraints string for prompt
+	constraints := ""
+	if mobility != nil {
+		constraints += fmt.Sprintf("- Mobility: %v\n", mobility)
+	}
+	if sensory != nil {
+		constraints += fmt.Sprintf("- Sensory: %v\n", sensory)
+	}
+	if dietary != nil {
+		constraints += fmt.Sprintf("- Dietary: %v\n", dietary)
+	}
+
+	// Sophisticated, constraint-based prompt
 	prompt := fmt.Sprintf(`
-    You are a world-class travel planning API. Your only output format is JSON. Do not include any text before or after the JSON object.
-    Based on the user's request, generate a travel itinerary. The JSON object must follow this exact structure:
-    {"tripTitle": "A Catchy Title", "destination": "City, Country", "itinerary": [{"day": 1, "title": "Arrival and Exploration", "activities": [{"time": "9:00 AM", "description": "Visit a famous landmark.", "category": "Sightseeing", "lat": 12.345, "lng": 67.890}]}]}
+You are Auryvia, a compassionate AI travel assistant. Your primary goal is user safety, comfort, and joy. You MUST adhere to all constraints. Your output MUST be JSON.
 
-    User's request: "%s"`, tripIdea)
+USER CONSTRAINTS:
+%v
+USER REQUEST: "%s"
 
-	// Tell the model its response MUST be JSON
+Generate an itinerary that strictly follows every single constraint. The JSON object must follow this exact structure:
+{"tripTitle": "A Catchy Title", "destination": "City, Country", "itinerary": [{"day": 1, "title": "Arrival and Exploration", "activities": [{"time": "9:00 AM", "description": "Visit a famous landmark.", "category": "Sightseeing", "lat": 12.345, "lng": 67.890}]}]}
+`, constraints, tripIdea)
+
+	model := client.GenerativeModel("gemini-1.5-flash")
 	model.GenerationConfig = genai.GenerationConfig{
 		ResponseMIMEType: "application/json",
 	}
@@ -212,7 +238,6 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Tell the browser we are sending JSON data
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(w, itineraryJSON)
 }
