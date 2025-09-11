@@ -88,6 +88,7 @@ func main() {
 	mux.HandleFunc("/api/generate", handleGenerate)
 	mux.HandleFunc("/api/save-trip", handleSaveTrip)
 	mux.HandleFunc("/api/mock-prices", handleMockPrices)
+	mux.HandleFunc("/api/public-trips", handlePublicTrips)
 	initFirebase()
 	fmt.Println("Backend engine with SUPER-SMART AI Brain is starting on port 8080...")
 	log.Fatal(http.ListenAndServe(":8080", corsMiddleware(mux)))
@@ -263,4 +264,36 @@ func handleMockPrices(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
+}
+
+func handlePublicTrips(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	ctx := context.Background()
+	if firestoreClient == nil {
+		http.Error(w, "Firestore not initialized", http.StatusInternalServerError)
+		return
+	}
+
+	iter := firestoreClient.Collection("trips").
+		Where("isPublic", "==", true).
+		OrderBy("createdAt", firestore.Desc).
+		Limit(10).
+		Documents(ctx)
+
+	var trips []map[string]interface{}
+	for {
+		doc, err := iter.Next()
+		if err != nil {
+			break
+		}
+		data := doc.Data()
+		data["id"] = doc.Ref.ID
+		trips = append(trips, data)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(trips)
 }
