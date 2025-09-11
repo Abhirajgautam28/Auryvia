@@ -62,6 +62,14 @@ const featureCards = [
 ];
 
 export default function Home() {
+  // Mocked sanctuaries for AR/Guardian features
+  const sanctuaries = [
+    { lat: 12.937, lng: 77.618, label: 'Botanical Garden Sanctuary' },
+    { lat: 12.935, lng: 77.619, label: 'Central Library Sanctuary' },
+    { lat: 12.938, lng: 77.620, label: 'Quiet Cafe Sanctuary' },
+  ];
+  // Ensure userLocation is always defined
+  const userLocation = { lat: 12.936, lng: 77.617 };
   // Social Script feature state
   // Social Script feature state (unique names to avoid redeclaration)
   const [socialScriptModal, setSocialScriptModal] = useState(false);
