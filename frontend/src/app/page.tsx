@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import OnboardingModal from '@/components/OnboardingModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaHeart, FaShieldAlt, FaBrain, FaMapPin, FaLeaf, FaWheelchair, FaUtensils, FaEye, FaLifeRing, FaVolumeMute, FaComments } from 'react-icons/fa';
+import { FaHeart, FaShieldAlt, FaBrain, FaMapPin, FaLeaf, FaWheelchair, FaUtensils, FaEye, FaLifeRing, FaVolumeMute, FaComments, FaUserFriends } from 'react-icons/fa';
 import { useEffect, useState, useRef } from 'react';
 import ActivityCard from './ActivityCard';
 import { auth } from '@/lib/firebase';
@@ -83,6 +83,9 @@ export default function Home() {
   const [commCard, setCommCard] = useState<{ en: string; jp: string } | null>(null);
   const [commLoading, setCommLoading] = useState(false);
   const [showCommModal, setShowCommModal] = useState(false);
+  const [showScriptModal, setShowScriptModal] = useState(false);
+  const [scriptLoading, setScriptLoading] = useState(false);
+  const [scriptData, setScriptData] = useState<{ user: string[]; staff: string[]; tips: string } | null>(null);
 
   // Mocked user location and sanctuaries
   const userLocation = { lat: 12.936, lng: 77.617 };
@@ -228,6 +231,21 @@ export default function Home() {
     setCommLoading(false);
   };
 
+  // Social Script API call
+  const handleScript = async (context: string) => {
+    setScriptLoading(true);
+    setScriptData(null);
+    setShowScriptModal(true);
+    const res = await fetch('http://localhost:8080/api/generate-script', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ context }),
+    });
+    const data = await res.json();
+    setScriptData(data);
+    setScriptLoading(false);
+  };
+
   return (
     <main className="min-h-screen bg-[#f8f7f4] text-[#1e293b] font-sans relative">
       {showOnboarding && (
@@ -318,6 +336,40 @@ export default function Home() {
               <div>
                 <div className="font-semibold mb-2">Japanese</div>
                 <div className="bg-blue-50 rounded-lg p-4 text-2xl font-bold text-blue-700">{commCard.jp}</div>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+      {/* Social Script Modal */}
+      <Dialog open={showScriptModal} onOpenChange={setShowScriptModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold mb-2">Social Script</DialogTitle>
+          </DialogHeader>
+          {scriptLoading ? (
+            <div className="text-center py-6 text-blue-500">Generating script...</div>
+          ) : scriptData ? (
+            <div className="space-y-6">
+              <div>
+                <div className="font-semibold mb-2">What you can say:</div>
+                <ul className="list-disc pl-6 space-y-2">
+                  {scriptData.user.map((line, idx) => (
+                    <li key={idx} className="text-base text-gray-700">{line}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <div className="font-semibold mb-2">What they might say:</div>
+                <ul className="list-disc pl-6 space-y-2">
+                  {scriptData.staff.map((line, idx) => (
+                    <li key={idx} className="text-base text-gray-700">{line}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <div className="font-semibold mb-2">Cultural Tips:</div>
+                <div className="bg-gray-100 rounded-lg p-4 text-base">{scriptData.tips}</div>
               </div>
             </div>
           ) : null}
@@ -703,6 +755,22 @@ export default function Home() {
               onClick={() => handleCommCard(activity.description, 'Celiac Disease')}
             >
               <FaComments />
+            </Button>
+          ) : null
+        )
+      )}
+      {/* Example: Add social script icon next to restaurant activities */}
+      {itinerary && itinerary.itinerary.map((day, dayIdx) =>
+        day.activities.map((activity, actIdx) =>
+          activity.category === 'Food' ? (
+            <Button
+              key={`script-${dayIdx}-${actIdx}`}
+              variant="ghost"
+              size="sm"
+              className="ml-2 text-green-600"
+              onClick={() => handleScript(`ordering dinner at ${activity.description}`)}
+            >
+              <FaUserFriends />
             </Button>
           ) : null
         )
