@@ -14,6 +14,7 @@ import BookingCard from '../components/BookingCard';
 import toast from 'react-hot-toast';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import EnergyMonitor from '../components/EnergyMonitor';
 
 type Itinerary = {
   tripTitle: string;
@@ -514,6 +515,13 @@ export default function Home() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Add Energy Monitor here */}
+          {itinerary && (
+            <div className="mb-8 flex justify-end">
+              <EnergyMonitor itinerary={itinerary} onReshuffle={() => {}} />
+            </div>
+          )}
         </div>
       </div>
 
