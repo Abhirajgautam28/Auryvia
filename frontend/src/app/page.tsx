@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import OnboardingModal from '@/components/OnboardingModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaHeart, FaShieldAlt, FaBrain, FaMapPin, FaLeaf, FaWheelchair, FaUtensils, FaEye, FaLifeRing, FaVolumeMute, FaComments, FaUserFriends } from 'react-icons/fa';
+import { FaHeart, FaShieldAlt, FaBrain, FaMapPin, FaLeaf, FaWheelchair, FaUtensils, FaEye, FaLifeRing, FaVolumeMute, FaComments, FaUserFriends, FaEnvelope, FaClipboard } from 'react-icons/fa';
 import { useEffect, useState, useRef } from 'react';
 import ActivityCard from './ActivityCard';
 import { auth } from '@/lib/firebase';
@@ -110,6 +110,9 @@ export default function Home() {
   const [showScriptModal, setShowScriptModal] = useState(false);
   const [scriptLoading, setScriptLoading] = useState(false);
   const [scriptData, setScriptData] = useState<{ user: string[]; staff: string[]; tips: string } | null>(null);
+  const [showHotelRequest, setShowHotelRequest] = useState(false);
+  const [hotelEmail, setHotelEmail] = useState('');
+  const [hotelLoading, setHotelLoading] = useState(false);
 
   // Mocked user location and sanctuaries
   const userLocation = { lat: 12.936, lng: 77.617 };
@@ -268,6 +271,24 @@ export default function Home() {
     const data = await res.json();
     setScriptData(data);
     setScriptLoading(false);
+  };
+
+  // Compose AI hotel request
+  const handleHotelRequest = async (hotelName: string, userNeeds: string) => {
+    setHotelLoading(true);
+    setHotelEmail('');
+    setShowHotelRequest(true);
+    const res = await fetch('http://localhost:8080/api/compose-hotel-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        hotel: hotelName,
+        needs: userNeeds,
+      }),
+    });
+    const data = await res.json();
+    setHotelEmail(data.email);
+    setHotelLoading(false);
   };
 
   return (
@@ -431,6 +452,37 @@ export default function Home() {
               </div>
             </div>
           ) : null}
+        </DialogContent>
+      </Dialog>
+      {/* Hotel Request Modal */}
+      <Dialog open={showHotelRequest} onOpenChange={setShowHotelRequest}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold mb-2">
+              AI Amenity Request Composer
+            </DialogTitle>
+          </DialogHeader>
+          {hotelLoading ? (
+            <div className="text-center py-6 text-blue-500">Composing your request...</div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <FaEnvelope className="text-blue-500 text-xl" />
+                <span className="font-semibold">Copy and send this email to your hotel:</span>
+              </div>
+              <div className="bg-gray-100 rounded-lg p-4 text-base whitespace-pre-line">{hotelEmail}</div>
+              <Button
+                variant="outline"
+                className="flex items-center gap-2"
+                onClick={() => {
+                  navigator.clipboard.writeText(hotelEmail);
+                }}
+              >
+                <FaClipboard />
+                Copy to Clipboard
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
       <div className="relative">
@@ -847,6 +899,22 @@ export default function Home() {
               onClick={() => handleScript(`ordering dinner at ${activity.description}`)}
             >
               <FaUserFriends />
+            </Button>
+          ) : null
+        )
+      )}
+      {/* Example: Add hotel request button next to hotel activities */}
+      {itinerary && itinerary.itinerary.map((day, dayIdx) =>
+        day.activities.map((activity, actIdx) =>
+          activity.category === 'Hotel' ? (
+            <Button
+              key={`hotelreq-${dayIdx}-${actIdx}`}
+              variant="ghost"
+              size="sm"
+              className="ml-2 text-blue-600"
+              onClick={() => handleHotelRequest(activity.description, 'unscented products, low floor, fridge for medication')}
+            >
+              Prepare Hotel Request
             </Button>
           ) : null
         )

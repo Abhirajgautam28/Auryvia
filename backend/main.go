@@ -94,6 +94,7 @@ func main() {
 	mux.HandleFunc("/api/sensory-profile", handleSensoryProfile)
 	mux.HandleFunc("/api/reshuffle-day", handleReshuffleDay)
 	mux.HandleFunc("/api/generate-script", handleGenerateScript)
+	mux.HandleFunc("/api/compose-hotel-request", handleComposeHotelRequest)
 	initFirebase()
 	fmt.Println("Backend engine with SUPER-SMART AI Brain is starting on port 8080...")
 	log.Fatal(http.ListenAndServe(":8080", corsMiddleware(mux)))
@@ -576,4 +577,59 @@ Example: {"user": ["I'd like to order pasta, please.", "Could I have the bill?"]
 
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprint(w, printResponse(resp))
+}
+
+func handleComposeHotelRequest(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Hotel string `json:"hotel"`
+		Needs string `json:"needs"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	ctx := context.Background()
+	apiKey := os.Getenv("GEMINI_API_KEY")
+	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
+	if err != nil {
+		http.Error(w, "AI error", http.StatusInternalServerError)
+		return
+	}
+	defer client.Close()
+
+	prompt := fmt.Sprintf(`
+You are Auryvia, a compassionate travel AI. Compose a perfectly worded email for a hotel amenity request.
+Hotel: %s
+User Needs: %s
+
+The email should be polite, clear, and specific. Include a greeting, the user's needs, and a closing. Output JSON: {"email": "full email text"}
+Example: {"email": "Dear Hotel Team,\nI am looking forward to my upcoming stay. I have a few requests to ensure my comfort: unscented products, a low floor room, and a fridge for medication. Thank you for your understanding and support.\nBest regards,\n[Your Name]}
+`, req.Hotel, req.Needs)
+
+	model := client.GenerativeModel("gemini-1.5-flash")
+	model.GenerationConfig = genai.GenerationConfig{
+		ResponseMIMEType: "application/json",
+	}
+
+	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
+	if err != nil {
+		http.Error(w, "AI error", http.StatusInternalServerError)
+		return
+	}
+
+	var result struct {
+		Email string `json:"email"`
+	}
+	if err := json.Unmarshal([]byte(printResponse(resp)), &result); err != nil {
+		http.Error(w, "Failed to parse email", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
 }
