@@ -247,7 +247,6 @@ export default function Home() {
               />
               <Button
                 onClick={handleClick}
-                isLoading={loading}
                 className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-lg rounded-full px-6 py-3 transition-all"
               >
                 {loading ? 'Thinking...' : 'Generate Itinerary'}
