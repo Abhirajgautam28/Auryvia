@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
@@ -85,6 +87,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/generate", handleGenerate)
 	mux.HandleFunc("/api/save-trip", handleSaveTrip)
+	mux.HandleFunc("/api/mock-prices", handleMockPrices)
 	initFirebase()
 	fmt.Println("Backend engine with SUPER-SMART AI Brain is starting on port 8080...")
 	log.Fatal(http.ListenAndServe(":8080", corsMiddleware(mux)))
@@ -224,4 +227,40 @@ func printResponse(resp *genai.GenerateContentResponse) string {
 	}
 	// Clean up the response to make sure it's valid JSON
 	return result
+}
+
+func handleMockPrices(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	type Req struct {
+		Destination string `json:"destination"`
+	}
+	var req Req
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Seed random for demo
+	rand.Seed(time.Now().UnixNano())
+
+	// Fake airlines and hotels
+	airlines := []string{"IndiGo", "Air India", "SpiceJet", "Vistara"}
+	hotels := []string{"Taj Palace", "Leela", "Oberoi", "ITC Grand"}
+
+	resp := map[string]interface{}{
+		"flights": map[string]interface{}{
+			"airline": airlines[rand.Intn(len(airlines))],
+			"price":   rand.Intn(8000) + 7000, // 7000-15000
+		},
+		"hotels": map[string]interface{}{
+			"name":            hotels[rand.Intn(len(hotels))],
+			"price_per_night": rand.Intn(4000) + 6000, // 6000-10000
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
