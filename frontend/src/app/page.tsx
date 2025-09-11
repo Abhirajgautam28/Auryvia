@@ -5,6 +5,7 @@ import ActivityCard from './ActivityCard';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import InteractiveMap from '../components/InteractiveMap';
+import BookingCard from '../components/BookingCard';
 
 type Itinerary = {
   tripTitle: string;
@@ -25,6 +26,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [bookingData, setBookingData] = useState<any>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -36,6 +38,7 @@ export default function Home() {
   const handleClick = async () => {
     setLoading(true);
     setItinerary(null);
+    setBookingData(null);
 
     const response = await fetch('http://localhost:8080/api/generate', {
       method: 'POST',
@@ -44,6 +47,22 @@ export default function Home() {
 
     const data = await response.json();
     setItinerary(data);
+
+    // Fetch mock prices if destination is present
+    if (data.destination) {
+      try {
+        const pricesRes = await fetch('http://localhost:8080/api/mock-prices', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ destination: data.destination }),
+        });
+        const prices = await pricesRes.json();
+        setBookingData(prices);
+      } catch {
+        setBookingData(null);
+      }
+    }
+
     setLoading(false);
   };
 
@@ -124,6 +143,7 @@ export default function Home() {
                 </div>
               ))}
             </div>
+            {bookingData && <BookingCard data={bookingData} />}
             {user && (
               <button
                 onClick={handleSave}
