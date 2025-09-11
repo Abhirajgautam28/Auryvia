@@ -18,7 +18,7 @@ type Itinerary = {
 
 export default function Home() {
   const [idea, setIdea] = useState('');
-  const [itinerary, setItinerary] = useState<Itinerary | null>(null); data or nothing
+  const [itinerary, setItinerary] = useState<Itinerary | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleClick = async () => {
