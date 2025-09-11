@@ -52,7 +52,7 @@ export default function DiscoverPage() {
       try {
         const res = await fetch("http://localhost:8080/api/public-trips");
         const data = await res.json();
-        setTrips(data);
+  setTrips(Array.isArray(data) ? data : []);
       } catch {
         setTrips([]);
       }
