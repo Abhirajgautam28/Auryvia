@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import ActivityCard from './ActivityCard';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -37,6 +37,9 @@ export default function Home() {
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [bookingData, setBookingData] = useState<any>(null);
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const activityRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -123,6 +126,16 @@ export default function Home() {
     }
   };
 
+  // Scroll to activity card when marker is clicked
+  useEffect(() => {
+    if (selectedIdx !== null && activityRefs.current[selectedIdx]) {
+      activityRefs.current[selectedIdx]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Remove highlight after 1.2s
+      const timeout = setTimeout(() => setSelectedIdx(null), 1200);
+      return () => clearTimeout(timeout);
+    }
+  }, [selectedIdx]);
+
   // Animation variants for staggered cards
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -143,7 +156,7 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-white font-sans">
-      <div className="w-full max-w-3xl mx-auto rounded-2xl bg-white shadow-lg p-10 flex flex-col items-center justify-center border border-slate-200">
+      <div className="w-full max-w-5xl mx-auto rounded-2xl bg-white shadow-lg p-10 flex flex-col items-center justify-center border border-slate-200">
         <h1 className="text-5xl font-light mb-8 text-center text-gray-900 tracking-tight" style={{fontFamily: 'Roboto, Helvetica, Arial, sans-serif'}}>
           <span className="font-normal">Auryvia</span>
         </h1>
@@ -200,92 +213,114 @@ export default function Home() {
         <AnimatePresence>
           {itinerary && !loading && (
             <motion.div
-              className="mt-10 w-full"
+              className="mt-10 w-full h-[600px] flex flex-row gap-8"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
               exit="exit"
             >
-              <InteractiveMap
-                activities={
-                  itinerary.itinerary
-                    .flatMap(day => day.activities)
-                    .filter(a => typeof a.lat === 'number' && typeof a.lng === 'number')
-                }
-                apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
-              />
-              <motion.h2
-                className="text-2xl font-medium mb-6 text-center text-blue-700"
-                variants={cardVariants}
-              >
-                {itinerary.tripTitle}
-              </motion.h2>
-              <motion.div
-                className="space-y-6"
-                variants={containerVariants}
-              >
-                <AnimatePresence>
-                  {itinerary.itinerary.map((day) => (
-                    <motion.div
-                      key={day.day}
-                      className="rounded-xl bg-gray-50 p-6 shadow border border-slate-200"
-                      variants={cardVariants}
-                      initial="hidden"
-                      animate="visible"
-                      exit="exit"
-                    >
-                      <motion.h3
-                        className="text-lg font-medium mb-4 text-blue-600"
-                        variants={cardVariants}
-                      >
-                        Day {day.day}: {day.title}
-                      </motion.h3>
-                      <motion.div
-                        className="space-y-4"
-                        variants={containerVariants}
-                      >
-                        <AnimatePresence>
-                          {day.activities.map((activity, index) => (
-                            <motion.div
-                              key={index}
-                              variants={cardVariants}
-                              initial="hidden"
-                              animate="visible"
-                              exit="exit"
-                            >
-                              <ActivityCard activity={activity} />
-                            </motion.div>
-                          ))}
-                        </AnimatePresence>
-                      </motion.div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </motion.div>
-              {bookingData && <BookingCard data={bookingData} />}
-              {user && (
-                <motion.button
-                  onClick={handleSave}
-                  className="mt-8 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-transform transform hover:scale-105"
+              {/* Left Panel: Interactive Map */}
+              <div className="w-1/2 h-full">
+                <InteractiveMap
+                  activities={
+                    itinerary.itinerary
+                      .flatMap(day => day.activities)
+                      .filter(a => typeof a.lat === 'number' && typeof a.lng === 'number')
+                  }
+                  apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
+                  hoveredIdx={hoveredIdx}
+                  selectedIdx={selectedIdx}
+                  onMarkerClick={setSelectedIdx}
+                />
+              </div>
+              {/* Right Panel: Scrollable itinerary cards */}
+              <div className="w-1/2 h-full overflow-y-auto pr-2">
+                <motion.h2
+                  className="text-2xl font-medium mb-6 text-center text-blue-700"
                   variants={cardVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
                 >
-                  Save to My Library
-                </motion.button>
-              )}
-              {saveStatus && (
+                  {itinerary.tripTitle}
+                </motion.h2>
                 <motion.div
-                  className="mt-4 text-center"
-                  variants={cardVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
+                  className="space-y-6"
+                  variants={containerVariants}
                 >
-                  <span className={saveStatus.startsWith('Saved') ? 'text-green-400' : 'text-red-400'}>{saveStatus}</span>
+                  <AnimatePresence>
+                    {itinerary.itinerary.map((day) => (
+                      <motion.div
+                        key={day.day}
+                        className="rounded-xl bg-gray-50 p-6 shadow border border-slate-200"
+                        variants={cardVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                      >
+                        <motion.h3
+                          className="text-lg font-medium mb-4 text-blue-600"
+                          variants={cardVariants}
+                        >
+                          Day {day.day}: {day.title}
+                        </motion.h3>
+                        <motion.div
+                          className="space-y-4"
+                          variants={containerVariants}
+                        >
+                          <AnimatePresence>
+                            {day.activities.map((activity, index) => {
+                              // Calculate global activity index for map binding
+                              const globalIdx = itinerary.itinerary
+                                .slice(0, itinerary.itinerary.indexOf(day))
+                                .reduce((acc, d) => acc + d.activities.length, 0) + index;
+                              return (
+                                <motion.div
+                                  key={index}
+                                  variants={cardVariants}
+                                  initial="hidden"
+                                  animate="visible"
+                                  exit="exit"
+                                >
+                                  <ActivityCard
+                                    activity={activity}
+                                    isHovered={hoveredIdx === globalIdx}
+                                    isSelected={selectedIdx === globalIdx}
+                                    onHover={() => setHoveredIdx(globalIdx)}
+                                    onUnhover={() => setHoveredIdx(null)}
+                                    refProp={el => (activityRefs.current[globalIdx] = el)}
+                                  />
+                                </motion.div>
+                              );
+                            })}
+                          </AnimatePresence>
+                        </motion.div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </motion.div>
-              )}
+                {bookingData && <BookingCard data={bookingData} />}
+                {user && (
+                  <motion.button
+                    onClick={handleSave}
+                    className="mt-8 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-transform transform hover:scale-105"
+                    variants={cardVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                  >
+                    Save to My Library
+                  </motion.button>
+                )}
+                {saveStatus && (
+                  <motion.div
+                    className="mt-4 text-center"
+                    variants={cardVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                  >
+                    <span className={saveStatus.startsWith('Saved') ? 'text-green-400' : 'text-red-400'}>{saveStatus}</span>
+                  </motion.div>
+                )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
