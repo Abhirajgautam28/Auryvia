@@ -33,4 +33,11 @@ export default function PioneerCard({ trip }: { trip: PioneerTrip }) {
       </CardHeader>
       <CardContent className="mt-2 flex items-center gap-2">
         <FaQuoteLeft className="text-blue-400 text-xl mr-2" />
-        <span className="italic text-gray-
+        <span className="italic text-gray-700">
+          {trip.keyInsight ||
+            "“This trip was a game changer for my comfort and independence.”"}
+        </span>
+      </CardContent>
+            </Card>
+        )
+    }
