@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 
@@ -14,6 +14,8 @@ type Trip = {
 export default function DiscoverPage() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const activityRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     const fetchTrips = async () => {
@@ -29,6 +31,16 @@ export default function DiscoverPage() {
     };
     fetchTrips();
   }, []);
+
+  useEffect(() => {
+    if (selectedIdx !== null && activityRefs.current[selectedIdx]) {
+      activityRefs.current[selectedIdx]?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      // Remove highlight after 1.2s
+    }
+  }, [selectedIdx]);
 
   return (
     <main className="min-h-screen bg-slate-900 p-8">
@@ -54,13 +66,15 @@ export default function DiscoverPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-          {(Array.isArray(trips) ? trips : []).map((trip) => (
+          {(Array.isArray(trips) ? trips : []).map((trip, idx) => (
             <motion.div
               key={trip.id}
               className="bg-slate-800 border border-slate-700 rounded-xl shadow-lg p-6 flex flex-col items-center cursor-pointer"
               initial={{ scale: 1 }}
               whileHover={{ scale: 1.03 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              ref={(el) => (activityRefs.current[idx] = el)}
+              onClick={() => setSelectedIdx(idx)}
             >
               <div className="w-full h-40 mb-4 flex items-center justify-center bg-slate-700 rounded-lg overflow-hidden">
                 <img

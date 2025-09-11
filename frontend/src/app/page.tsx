@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import OnboardingModal from '@/components/OnboardingModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaHeart, FaShieldAlt, FaBrain, FaMapPin, FaLeaf, FaWheelchair, FaUtensils, FaEye } from 'react-icons/fa';
@@ -67,6 +68,22 @@ export default function Home() {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const activityRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  // Check onboarding status after login
+  useEffect(() => {
+    if (user) {
+      // Replace with your Firestore check for onboarding status
+      fetch(`http://localhost:8080/api/check-onboarding`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${user && (user as any).accessToken}` },
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (!data.onboarded) setShowOnboarding(true);
+        })
+        .catch(() => setShowOnboarding(false));
+    }
+  }, [user]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -161,199 +178,201 @@ export default function Home() {
     if (selectedIdx !== null && activityRefs.current[selectedIdx]) {
       activityRefs.current[selectedIdx]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       // Remove highlight after 1.2s
-      const timeout = setTimeout(() => setSelectedIdx(null), 1200);
-      return () => clearTimeout(timeout);
+      return () => {
+        setTimeout(() => {
+          setSelectedIdx(null);
+        }, 1200);
+      };
     }
   }, [selectedIdx]);
 
-  // Animation variants for staggered cards
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.18,
-      },
-    },
-    exit: { opacity: 0 }
-  };
-
-  const cardVariants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 60 } },
-    exit: { opacity: 0, y: -30 }
-  };
-
   return (
-    <main className="flex min-h-screen items-center justify-center bg-white font-sans">
-      <div className="w-full max-w-5xl mx-auto rounded-2xl bg-white shadow-lg p-10 flex flex-col items-center justify-center border border-slate-200">
-        <h1 className="text-5xl font-light mb-8 text-center text-gray-900 tracking-tight" style={{fontFamily: 'Roboto, Helvetica, Arial, sans-serif'}}>
-          <span className="font-normal">Auryvia</span>
-        </h1>
-        <AnimatePresence>
-          {!loading && thinkingStep === null && !itinerary && (
-            <motion.form
-              className="w-full flex flex-col items-center gap-6"
-              onSubmit={e => { e.preventDefault(); handleClick(); }}
-              initial={{ opacity: 1 }}
+    <main className="min-h-screen bg-[#f8f7f4] text-[#1e293b] font-sans">
+      {showOnboarding && (
+        <OnboardingModal onComplete={() => setShowOnboarding(false)} />
+      )}
+      <div className="relative">
+        {/* Background SVG */}
+        <motion.svg
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute inset-0 w-full h-full -z-10"
+          viewBox="0 0 1440 320"
+        >
+          <motion.path
+            fill="url(#gradient)"
+            d="M0,128L30,138.7C60,149,120,171,180,186.7C240,203,300,213,360,186.7C420,160,480,96,540,74.7C600,53,660,75,720,101.3C780,128,840,160,900,186.7C960,213,1020,235,1080,218.7C1140,203,1200,149,1260,128L1320,107L1380,85.3L1440,64L1440,320L1380,320C1320,320,1260,320,1200,320C1140,320,1080,320,1020,320C960,320,900,320,840,320C780,320,720,320,660,320C600,320,540,320,480,320C420,320,360,320,300,320C240,320,180,320,120,320C60,320,30,320,0,320Z"
+            variants={{
+              hidden: { opacity: 0, y: 20 },
+              visible: { opacity: 1, y: 0 },
+            }}
+            transition={{ duration: 1, ease: 'easeOut' }}
+          />
+          <defs>
+            <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#3b82f6" />
+              <stop offset="100%" stopColor="#a7f3d0" />
+            </linearGradient>
+          </defs>
+        </motion.svg>
+
+        <div className="relative z-10 px-4 py-16 max-w-5xl mx-auto">
+          {/* Search and Idea Section */}
+          <motion.div
+            className="bg-white rounded-3xl shadow-2xl p-8 mb-12"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+          >
+            <motion.h2
+              className="text-3xl font-extrabold mb-6 text-center"
+              initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0, transition: { duration: 0.5 } }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}
             >
-              <textarea
+              Your Next Adventure Awaits
+            </motion.h2>
+            <motion.div
+              className="flex flex-col md:flex-row gap-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}
+            >
+              <input
+                type="text"
                 value={idea}
                 onChange={(e) => setIdea(e.target.value)}
-                placeholder="e.g., A 5-day adventure in Kerala with backwaters, tea plantations, and spicy food"
-                className="w-full bg-gray-100 border border-gray-300 rounded-full px-6 py-4 text-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none transition shadow placeholder:text-gray-400 font-normal resize-none"
-                rows={2}
-                style={{ minHeight: 56 }}
+                placeholder="Where to this time?"
+                className="flex-1 px-4 py-3 text-lg rounded-full border-2 border-transparent focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
               />
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-full shadow transition disabled:opacity-50 text-lg"
-                style={{fontFamily: 'Roboto, Helvetica, Arial, sans-serif'}}
+              <Button
+                onClick={handleClick}
+                isLoading={loading}
+                className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-lg rounded-full px-6 py-3 transition-all"
               >
-                {loading ? 'Dreaming...' : 'Create My Trip'}
-              </button>
-            </motion.form>
-          )}
-        </AnimatePresence>
-        <AnimatePresence>
-          {loading && thinkingStep !== null && (
-            <motion.div
-              key={thinkingStep}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.5 }}
-              className="w-full flex flex-col items-center justify-center min-h-[120px]"
-            >
-              <motion.p
-                className="text-2xl font-semibold text-blue-700 mb-2"
+                {loading ? 'Thinking...' : 'Generate Itinerary'}
+              </Button>
+            </motion.div>
+          </motion.div>
+
+          {/* Thinking Animation */}
+          <AnimatePresence>
+            {loading && (
+              <motion.div
+                className="bg-white rounded-3xl shadow-2xl p-8 mb-12"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                {thinkingSteps[thinkingStep].text}
-              </motion.p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <AnimatePresence>
-          {itinerary && !loading && (
-            <motion.div
-              className="mt-10 w-full h-[600px] flex flex-row gap-8"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-            >
-              {/* Left Panel: Interactive Map */}
-              <div className="w-1/2 h-full">
-                <InteractiveMap
-                  activities={
-                    itinerary.itinerary
-                      .flatMap(day => day.activities)
-                      .filter(a => typeof a.lat === 'number' && typeof a.lng === 'number')
-                  }
-                  apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
-                  hoveredIdx={hoveredIdx}
-                  selectedIdx={selectedIdx}
-                  onMarkerClick={setSelectedIdx}
-                />
-              </div>
-              {/* Right Panel: Scrollable itinerary cards */}
-              <div className="w-1/2 h-full overflow-y-auto pr-2">
                 <motion.h2
-                  className="text-2xl font-medium mb-6 text-center text-blue-700"
-                  variants={cardVariants}
+                  className="text-2xl font-bold mb-4 text-center"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.7, ease: 'easeOut' }}
                 >
-                  {itinerary.tripTitle}
+                  Just a Moment...
                 </motion.h2>
                 <motion.div
-                  className="space-y-6"
-                  variants={containerVariants}
+                  className="flex flex-col gap-2"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.7, ease: 'easeOut' }}
                 >
-                  <AnimatePresence>
-                    {itinerary.itinerary.map((day) => (
-                      <motion.div
-                        key={day.day}
-                        className="rounded-xl bg-gray-50 p-6 shadow border border-slate-200"
-                        variants={cardVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
-                      >
-                        <motion.h3
-                          className="text-lg font-medium mb-4 text-blue-600"
-                          variants={cardVariants}
-                        >
-                          Day {day.day}: {day.title}
-                        </motion.h3>
-                        <motion.div
-                          className="space-y-4"
-                          variants={containerVariants}
-                        >
-                          <AnimatePresence>
-                            {day.activities.map((activity, index) => {
-                              // Calculate global activity index for map binding
-                              const globalIdx = itinerary.itinerary
-                                .slice(0, itinerary.itinerary.indexOf(day))
-                                .reduce((acc, d) => acc + d.activities.length, 0) + index;
-                              return (
-                                <motion.div
-                                  key={index}
-                                  variants={cardVariants}
-                                  initial="hidden"
-                                  animate="visible"
-                                  exit="exit"
-                                >
-                                  <ActivityCard
-                                    activity={activity}
-                                    isHovered={hoveredIdx === globalIdx}
-                                    isSelected={selectedIdx === globalIdx}
-                                    onHover={() => setHoveredIdx(globalIdx)}
-                                    onUnhover={() => setHoveredIdx(null)}
-                                    refProp={el => (activityRefs.current[globalIdx] = el)}
-                                  />
-                                </motion.div>
-                              );
-                            })}
-                          </AnimatePresence>
-                        </motion.div>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
+                  {thinkingSteps.map((step, idx) => (
+                    <motion.div
+                      key={idx}
+                      className="flex items-center gap-3"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6, ease: 'easeOut' }}
+                    >
+                      <div className="w-3 h-3 rounded-full bg-blue-600" />
+                      <p className="text-lg text-[#334155]">{step.text}</p>
+                    </motion.div>
+                  ))}
                 </motion.div>
-                {bookingData && <BookingCard data={bookingData} />}
-                {user && (
-                  <motion.button
-                    onClick={handleSave}
-                    className="mt-8 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-transform transform hover:scale-105"
-                    variants={cardVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Itinerary and Booking Results */}
+          <AnimatePresence>
+            {itinerary && !loading && (
+              <motion.div
+                className="bg-white rounded-3xl shadow-2xl p-8 mb-12"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <div className="flex flex-col gap-4">
+                  <motion.h2
+                    className="text-2xl font-bold mb-4"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.7, ease: 'easeOut' }}
                   >
-                    Save to My Library
-                  </motion.button>
-                )}
-                {saveStatus && (
+                    {itinerary.tripTitle}
+                  </motion.h2>
                   <motion.div
-                    className="mt-4 text-center"
-                    variants={cardVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.7, ease: 'easeOut' }}
                   >
-                    <span className={saveStatus.startsWith('Saved') ? 'text-green-400' : 'text-red-400'}>{saveStatus}</span>
+                    {itinerary.itinerary.map((day, idx) => (
+                      <div key={idx} className="p-4 bg-blue-50 rounded-lg shadow">
+                        <h3 className="text-xl font-semibold mb-2">Day {day.day}: {day.title}</h3>
+                        <div className="flex flex-col gap-2">
+                          {day.activities.map((activity, aidx) => (
+                            <div key={aidx} className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                              <div className="flex-shrink-0">
+                                <span className="block w-2.5 h-2.5 rounded-full bg-blue-600" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-[#334155] font-medium">{activity.time} - {activity.description}</p>
+                                <p className="text-sm text-gray-500">{activity.category}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </motion.div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                </div>
+
+                {/* Booking Card and Save Button */}
+                <div className="mt-6">
+                  {bookingData && <BookingCard data={bookingData} />}
+                  {user && (
+                    <motion.button
+                      onClick={handleSave}
+                      className="mt-8 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-transform transform hover:scale-105"
+                      variants={cardVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                    >
+                      Save to My Library
+                    </motion.button>
+                  )}
+                  {saveStatus && (
+                    <motion.div
+                      className="mt-4 text-center"
+                      variants={cardVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                    >
+                      <span className={saveStatus.startsWith('Saved') ? 'text-green-400' : 'text-red-400'}>{saveStatus}</span>
+                    </motion.div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* New Sections Below */}
