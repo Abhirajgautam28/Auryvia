@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { APIProvider, Map } from '@vis.gl/react-google-maps';
 import { motion } from 'framer-motion';
+import { Switch } from '@/components/ui/switch';
+import { FaToilet, FaVolumeMute } from 'react-icons/fa';
 
 type Activity = {
   lat: number;
@@ -7,6 +10,13 @@ type Activity = {
   time: string;
   description: string;
   category: string;
+};
+
+type ReliefPoint = {
+  lat: number;
+  lng: number;
+  type: 'restroom' | 'quiet';
+  label: string;
 };
 
 type Props = {
@@ -17,6 +27,13 @@ type Props = {
   onMarkerClick: (idx: number) => void;
 };
 
+const mockReliefPoints: ReliefPoint[] = [
+  { lat: 12.935, lng: 77.619, type: 'restroom', label: 'Accessible Restroom - Central Park' },
+  { lat: 12.938, lng: 77.622, type: 'restroom', label: 'Accessible Restroom - Museum' },
+  { lat: 12.932, lng: 77.615, type: 'quiet', label: 'Quiet Zone - Library' },
+  { lat: 12.936, lng: 77.617, type: 'quiet', label: 'Quiet Zone - Botanical Garden' },
+];
+
 export default function InteractiveMap({
   activities,
   apiKey,
@@ -24,11 +41,27 @@ export default function InteractiveMap({
   selectedIdx,
   onMarkerClick,
 }: Props) {
+  const [showRestrooms, setShowRestrooms] = useState(false);
+  const [showQuietZones, setShowQuietZones] = useState(false);
+
   if (!activities || activities.length === 0) return null;
   const center = { lat: activities[0].lat, lng: activities[0].lng };
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full relative">
+      {/* Relief View Toggle UI */}
+      <div className="absolute top-4 left-4 z-20 bg-white/90 rounded-xl shadow-lg p-4 flex flex-col gap-4">
+        <label className="flex items-center gap-2">
+          <Switch checked={showRestrooms} onCheckedChange={setShowRestrooms} />
+          <FaToilet className="text-blue-500" />
+          <span className="text-sm font-medium text-slate-700">Accessible Restrooms</span>
+        </label>
+        <label className="flex items-center gap-2">
+          <Switch checked={showQuietZones} onCheckedChange={setShowQuietZones} />
+          <FaVolumeMute className="text-purple-500" />
+          <span className="text-sm font-medium text-slate-700">Quiet Zones</span>
+        </label>
+      </div>
       <APIProvider apiKey={apiKey}>
         <Map
           style={{ width: '100%', height: '100%' }}
@@ -36,6 +69,7 @@ export default function InteractiveMap({
           zoom={13}
           disableDefaultUI={false}
         >
+          {/* Activity markers */}
           {activities.map((activity, idx) => {
             const isHovered = hoveredIdx === idx;
             const isSelected = selectedIdx === idx;
@@ -68,6 +102,49 @@ export default function InteractiveMap({
               </motion.div>
             );
           })}
+          {/* Relief View markers */}
+          {showRestrooms &&
+            mockReliefPoints
+              .filter(p => p.type === 'restroom')
+              .map((p, idx) => (
+                <motion.div
+                  key={`restroom-${idx}`}
+                  style={{
+                    position: 'absolute',
+                    left: `${p.lng}%`,
+                    top: `${p.lat}%`,
+                    transform: 'translate(-50%, -100%)',
+                    pointerEvents: 'auto',
+                    zIndex: 5,
+                  }}
+                  animate={{ scale: 1.2 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+                  title={p.label}
+                >
+                  <FaToilet className="text-blue-500 text-2xl" />
+                </motion.div>
+              ))}
+          {showQuietZones &&
+            mockReliefPoints
+              .filter(p => p.type === 'quiet')
+              .map((p, idx) => (
+                <motion.div
+                  key={`quiet-${idx}`}
+                  style={{
+                    position: 'absolute',
+                    left: `${p.lng}%`,
+                    top: `${p.lat}%`,
+                    transform: 'translate(-50%, -100%)',
+                    pointerEvents: 'auto',
+                    zIndex: 5,
+                  }}
+                  animate={{ scale: 1.2 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+                  title={p.label}
+                >
+                  <FaVolumeMute className="text-purple-500 text-2xl" />
+                </motion.div>
+              ))}
         </Map>
       </APIProvider>
     </div>
