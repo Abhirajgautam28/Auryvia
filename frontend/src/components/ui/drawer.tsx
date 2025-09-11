@@ -40,15 +40,3 @@ export function DrawerClose({ children, asChild }: { children: React.ReactNode; 
   );
 }
 
-// Add basic slide-in animation
-const style = document.createElement('style');
-style.innerHTML = `
-@keyframes slideInUp {
-  from { transform: translateY(100%); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-.animate-slideInUp {
-  animation: slideInUp 0.3s cubic-bezier(0.4,0,0.2,1);
-}
-`;
-document.head.appendChild(style);
