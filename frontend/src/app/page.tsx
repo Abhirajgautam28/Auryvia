@@ -61,6 +61,30 @@ const featureCards = [
 ];
 
 export default function Home() {
+  // Social Script feature state
+  // Social Script feature state (unique names to avoid redeclaration)
+  const [socialScriptModal, setSocialScriptModal] = useState(false);
+  const [socialScriptLoading, setSocialScriptLoading] = useState(false);
+  const [socialScriptData, setSocialScriptData] = useState<{ user: string[]; staff: string[]; tips: string } | null>(null);
+
+  // Social Script API call
+  const handleSocialScript = async (context: string) => {
+    setSocialScriptLoading(true);
+    setSocialScriptData(null);
+    setSocialScriptModal(true);
+    try {
+      const res = await fetch('/api/generate-script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ context }),
+      });
+      const data = await res.json();
+      setSocialScriptData(data);
+    } catch {
+      setSocialScriptData(null);
+    }
+    setSocialScriptLoading(false);
+  };
   // Animation variants for cards
   const cardVariants = {
     hidden: { opacity: 0, y: 30 },
@@ -248,6 +272,40 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#f8f7f4] text-[#1e293b] font-sans relative">
+      {/* Social Script Modal */}
+      <Dialog open={socialScriptModal} onOpenChange={setSocialScriptModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Social Script</DialogTitle>
+          </DialogHeader>
+          {socialScriptLoading ? (
+            <div className="text-center py-6 text-blue-500">Generating script...</div>
+          ) : socialScriptData ? (
+            <div className="space-y-6">
+              <div>
+                <div className="font-semibold mb-2">What you can say:</div>
+                <ul className="list-disc pl-6 space-y-2">
+                  {socialScriptData.user.map((line, idx) => (
+                    <li key={idx} className="text-base text-gray-700">{line}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <div className="font-semibold mb-2">What they might say:</div>
+                <ul className="list-disc pl-6 space-y-2">
+                  {socialScriptData.staff.map((line, idx) => (
+                    <li key={idx} className="text-base text-gray-700">{line}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <div className="font-semibold mb-2">Cultural Tips:</div>
+                <div className="bg-gray-100 rounded-lg p-4 text-base">{socialScriptData.tips}</div>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
       {showOnboarding && (
         <OnboardingModal onComplete={() => setShowOnboarding(false)} />
       )}
@@ -746,11 +804,29 @@ export default function Home() {
       {/* Replace this with your actual itinerary rendering loop */}
       {itinerary && itinerary.itinerary.map((day, dayIdx) =>
         day.activities.map((activity, actIdx) =>
-          (activity.category === 'Food' || activity.category === 'Hotel') ? (
+          activity.category === 'Food' ? (
+            <>
+              <Button
+                key={`comm-${dayIdx}-${actIdx}`}
+                variant="ghost"
+                className="ml-2 text-blue-600"
+                onClick={() => handleCommCard(activity.description, 'Celiac Disease')}
+              >
+                <FaComments />
+              </Button>
+              <Button
+                key={`script-${dayIdx}-${actIdx}`}
+                variant="ghost"
+                className="ml-2 text-green-600"
+                onClick={() => handleSocialScript(`ordering dinner at ${activity.description}`)}
+              >
+                <FaUserFriends />
+              </Button>
+            </>
+          ) : activity.category === 'Hotel' ? (
             <Button
               key={`comm-${dayIdx}-${actIdx}`}
               variant="ghost"
-              size="sm"
               className="ml-2 text-blue-600"
               onClick={() => handleCommCard(activity.description, 'Celiac Disease')}
             >
