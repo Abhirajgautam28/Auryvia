@@ -4,11 +4,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
+
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
 	"github.com/google/generative-ai-go/genai"
@@ -148,8 +150,6 @@ func handleSaveTrip(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Saved"))
-}
-
 }
 
 func handleGenerate(w http.ResponseWriter, r *http.Request) {
