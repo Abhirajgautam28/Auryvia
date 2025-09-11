@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import ActivityCard from './ActivityCard';
+import { auth } from '@/lib/firebase';
 
 type Itinerary = {
   tripTitle: string;
@@ -20,6 +21,9 @@ export default function Home() {
   const [idea, setIdea] = useState('');
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
   const [loading, setLoading] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+
+  const userId = typeof window !== "undefined" && auth.currentUser ? auth.currentUser.uid : undefined;
 
   const handleClick = async () => {
     setLoading(true);
@@ -33,6 +37,34 @@ export default function Home() {
     const data = await response.json();
     setItinerary(data);
     setLoading(false);
+  };
+
+  // Save itinerary to backend
+  const handleSave = async () => {
+    if (!itinerary) return;
+    setSaveStatus(null);
+    if (!userId) {
+      setSaveStatus('You must be logged in to save your trip.');
+      return;
+    }
+    try {
+      const response = await fetch('http://localhost:8080/api/generate', {
+        method: 'POST',
+        body: JSON.stringify(itinerary),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': userId,
+        },
+      });
+      if (response.ok) {
+        setSaveStatus('Saved to database!');
+      } else {
+        const errorText = await response.text();
+        setSaveStatus('Error saving: ' + errorText);
+      }
+    } catch (err) {
+      setSaveStatus('Error saving: ' + (err instanceof Error ? err.message : String(err)));
+    }
   };
 
   return (
@@ -77,6 +109,17 @@ export default function Home() {
                 </div>
               ))}
             </div>
+            <button
+              onClick={handleSave}
+              className="mt-8 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-transform transform hover:scale-105"
+            >
+              Save Trip
+            </button>
+            {saveStatus && (
+              <div className="mt-4 text-center">
+                <span className={saveStatus.startsWith('Saved') ? 'text-green-400' : 'text-red-400'}>{saveStatus}</span>
+              </div>
+            )}
           </div>
         )}
       </div>
