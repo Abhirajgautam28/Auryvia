@@ -45,8 +45,14 @@ var firestoreClient *firestore.Client
 func initFirebase() {
 	ctx := context.Background()
 	// TODO: Replace with your actual service account key file path
-	sa := option.WithCredentialsFile("path/to/serviceAccountKey.json")
-	app, err := firebase.NewApp(ctx, nil, sa)
+	sa := option.WithCredentialsFile("serviceAccountKey.json")
+	// Get project ID from environment or hardcode for now
+	projectID := os.Getenv("FIREBASE_PROJECT_ID")
+	if projectID == "" {
+		log.Fatalf("FIREBASE_PROJECT_ID environment variable is required but not set.")
+	}
+	conf := &firebase.Config{ProjectID: projectID}
+	app, err := firebase.NewApp(ctx, conf, sa)
 	if err != nil {
 		log.Fatalf("error initializing firebase app: %v", err)
 	}
@@ -61,7 +67,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-User-Id")
 		if r.Method == "OPTIONS" {
 			return
 		}
@@ -70,7 +76,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
-	err := godotenv.Load()
+	err := godotenv.Load(".env.local")
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
@@ -78,9 +84,9 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/generate", handleGenerate)
 
+	initFirebase()
 	fmt.Println("Backend engine with SUPER-SMART AI Brain is starting on port 8080...")
 	http.ListenAndServe(":8080", corsMiddleware(mux))
-	initFirebase()
 }
 
 func handleGenerate(w http.ResponseWriter, r *http.Request) {
