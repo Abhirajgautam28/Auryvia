@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ActivityCard from './ActivityCard';
 import { auth } from '@/lib/firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
 
 type Itinerary = {
   tripTitle: string;
@@ -22,8 +23,14 @@ export default function Home() {
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
-  const userId = typeof window !== "undefined" && auth.currentUser ? auth.currentUser.uid : undefined;
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleClick = async () => {
     setLoading(true);
@@ -41,23 +48,21 @@ export default function Home() {
 
   // Save itinerary to backend
   const handleSave = async () => {
-    if (!itinerary) return;
+    if (!itinerary || !user) return;
     setSaveStatus(null);
-    if (!userId) {
-      setSaveStatus('You must be logged in to save your trip.');
-      return;
-    }
+
     try {
-      const response = await fetch('http://localhost:8080/api/generate', {
+      const idToken = await user.getIdToken();
+      const response = await fetch('http://localhost:8080/api/save-trip', {
         method: 'POST',
-        body: JSON.stringify(itinerary),
+        body: JSON.stringify({ itinerary }),
         headers: {
           'Content-Type': 'application/json',
-          'X-User-Id': userId,
+          'Authorization': `Bearer ${idToken}`,
         },
       });
       if (response.ok) {
-        setSaveStatus('Saved to database!');
+        setSaveStatus('Saved to your library!');
       } else {
         const errorText = await response.text();
         setSaveStatus('Error saving: ' + errorText);
@@ -109,12 +114,14 @@ export default function Home() {
                 </div>
               ))}
             </div>
-            <button
-              onClick={handleSave}
-              className="mt-8 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-transform transform hover:scale-105"
-            >
-              Save Trip
-            </button>
+            {user && (
+              <button
+                onClick={handleSave}
+                className="mt-8 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-transform transform hover:scale-105"
+              >
+                Save to My Library
+              </button>
+            )}
             {saveStatus && (
               <div className="mt-4 text-center">
                 <span className={saveStatus.startsWith('Saved') ? 'text-green-400' : 'text-red-400'}>{saveStatus}</span>

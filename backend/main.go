@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -83,10 +84,72 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/generate", handleGenerate)
-
+	mux.HandleFunc("/api/save-trip", handleSaveTrip)
 	initFirebase()
 	fmt.Println("Backend engine with SUPER-SMART AI Brain is starting on port 8080...")
-	http.ListenAndServe(":8080", corsMiddleware(mux))
+	log.Fatal(http.ListenAndServe(":8080", corsMiddleware(mux)))
+}
+
+// Save itinerary to Firestore with user ID from ID token
+func handleSaveTrip(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	ctx := context.Background()
+	// Get ID token from Authorization header
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" || len(authHeader) < 8 {
+		http.Error(w, "Missing or invalid Authorization header", http.StatusUnauthorized)
+		return
+	}
+	idToken := authHeader[7:] // Remove 'Bearer '
+
+	// Verify ID token
+	app, err := firebase.NewApp(ctx, nil, option.WithCredentialsFile("serviceAccountKey.json"))
+	if err != nil {
+		http.Error(w, "Failed to init Firebase app", http.StatusInternalServerError)
+		return
+	}
+	client, err := app.Auth(ctx)
+	if err != nil {
+		http.Error(w, "Failed to get Auth client", http.StatusInternalServerError)
+		return
+	}
+	token, err := client.VerifyIDToken(ctx, idToken)
+	if err != nil {
+		http.Error(w, "Invalid ID token", http.StatusUnauthorized)
+		return
+	}
+	userId := token.UID
+
+	// Read itinerary JSON from request body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Can't read request body", http.StatusBadRequest)
+		return
+	}
+	var req struct {
+		Itinerary interface{} `json:"itinerary"`
+	}
+	if err := json.Unmarshal(body, &req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Save to Firestore
+	if firestoreClient != nil {
+		_, _, err := firestoreClient.Collection("trips").Add(ctx, map[string]interface{}{
+			"userId":    userId,
+			"itinerary": req.Itinerary,
+		})
+		if err != nil {
+			http.Error(w, "Failed to save itinerary to Firestore: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Saved"))
 }
 
 func handleGenerate(w http.ResponseWriter, r *http.Request) {
